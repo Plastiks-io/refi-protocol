@@ -14,6 +14,9 @@ app.use(express.json());
 import roadmapRoutes from "./routes/roadmap.routes.js";
 app.use("/roadmap", roadmapRoutes);
 
+import userRoutes from "./routes/user.routes.js";
+app.use("/user", userRoutes);
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

@@ -21,6 +21,7 @@ export type InitializeRoadmapRequest = {
   roadmapName: string;
   roadmapDescription: string;
   prePkh: string;
+  preSkh: string;
   totalPlasticCredits: number;
   totalPlasticTokens: number;
   totalPlastic: number;
@@ -30,4 +31,13 @@ export type UpdateRoadmapRequest = {
   preId: string;
   roadmapId: string;
   soldPlasticCredit: number;
+};
+
+export type ReleaseFundsRequest = {
+  preId: string;
+  roadmapId: string;
+};
+
+export type QueryTransaction = {
+  txHash: string;
 };
