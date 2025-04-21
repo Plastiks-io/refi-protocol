@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import sequelize from "./db/config.js";
 dotenv.config();
 
 const app = express();
@@ -17,6 +18,11 @@ app.use("/roadmap", roadmapRoutes);
 import userRoutes from "./routes/user.routes.js";
 app.use("/user", userRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+// Sync the models with the database (create tables if not exists)
+sequelize.sync({ alter: true }).then(() => {
+  console.log("Database synced with changes!");
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
 });
+

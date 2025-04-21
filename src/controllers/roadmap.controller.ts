@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Request, Response } from "express";
 import {
   Lucid,
@@ -18,6 +19,7 @@ import {
   UpdateRoadmapRequest,
 } from "../types/roadmap.types.js";
 dotenv.config();
+import CompletedRoadmap from "../models/completedRoadmap.model.js";
 
 const initializeLucid = async () => {
   const lucid = await Lucid.new(
@@ -99,6 +101,21 @@ const initializeRoadmap = async (
         toText(datum.fields[1] as string) === roadmapId
       );
     });
+
+    // check if a roadmap already exist with same preId and roadmapId in completed roadmap
+    const completedRoadmap = await CompletedRoadmap.findOne({
+      where: {
+        preId: preId,
+        roadmapId: roadmapId,
+      },
+    });
+    if (completedRoadmap) {
+      res.status(409).json({
+        message: "Roadmap already exists in completed roadmaps",
+        success: false,
+      });
+      return;
+    }
 
     // 409 Conflict
     if (matchedUtxo) {
@@ -397,6 +414,24 @@ const releaseFunds = async (req: Request, res: Response): Promise<void> => {
     const signedTx = await tx.sign().complete();
     const txHash = await signedTx.submit();
 
+    // 5. Save the Roadmap to CompletedRoadmap table
+    const completedRoadmap = {
+      preId: toText(oldDatum.fields[0] as string),
+      roadmapId: toText(oldDatum.fields[1] as string),
+      roadmapName: toText(oldDatum.fields[2] as string),
+      roadmapDescription: toText(oldDatum.fields[3] as string),
+      progress: Number(oldDatum.fields[4] as bigint) / 100,
+      preAddress: preAddress,
+      totalPlasticCredits: Number(oldDatum.fields[8] as bigint),
+      soldPlasticCredits: Number(oldDatum.fields[9] as bigint),
+      totalPlasticTokens: Number(oldDatum.fields[10] as bigint),
+      sentPlasticTokens: Number(oldDatum.fields[11] as bigint),
+      totalPlastic: Number(oldDatum.fields[12] as bigint),
+      recoveredPlastic: Number(oldDatum.fields[13] as bigint),
+    };
+    await CompletedRoadmap.create(completedRoadmap);
+    console.log("Completed Roadmap:", completedRoadmap);
+
     res.status(201).json({
       message: "Funds released successfully",
       success: true,
@@ -462,20 +497,112 @@ const queryTransaction = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const queryAddress = async (req: Request, res: Response): Promise<void> => {
+const queryAddressHistory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { address } = req.body;
-    const lucid = await initializeLucid();
-    const utxos = await lucid.provider.getUtxos(address);
+    const { page = 1, count = 10, order = "desc" } = req.query;
+
+    if (!address) {
+      res.status(400).json({ message: "Address is required" });
+      return;
+    }
+    const blockfrostUrl = process.env.BLOCKFROST_URL;
+    const BLOCKFROST_API_KEY = process.env.BLOCKFROST_PROJECT_ID;
+    // Step 1: Fetch transaction hashes
+    const txHashesRes = await axios.get(
+      `${blockfrostUrl}/addresses/${address}/txs`,
+      {
+        headers: { project_id: BLOCKFROST_API_KEY },
+        params: { page, count, order },
+      }
+    );
+
+    const txHashes: string[] = txHashesRes.data;
+
+    // Step 2: Fetch detailed info for each transaction hash
+    const transactions = await Promise.all(
+      txHashes.map(async (txHash) => {
+        const txDetailsRes = await axios.get(`${blockfrostUrl}/txs/${txHash}`, {
+          headers: { project_id: BLOCKFROST_API_KEY },
+        });
+
+        const tx = txDetailsRes.data;
+
+        // Dummy placeholders for custom data
+        const pcAssetId = process.env.PLASTIC_CREDIT_ASSET_ID!;
+        const pcAmount = tx.output_amount?.find(
+          (asset: any) => asset.unit === pcAssetId
+        )?.quantity;
+        const lovelace = tx.output_amount?.[0]?.quantity || 0;
+        const ada = (Number(lovelace) / 1_000_000).toFixed(2);
+
+        return {
+          date: new Date(tx.block_time * 1000).toLocaleDateString("en-US"),
+          transactionFee: `${(Number(tx.fees) / 1_000_000).toFixed(2)} ADA`,
+          ada: `${ada} ADA`,
+          pcAmount: pcAmount,
+          pcAssetId: pcAssetId,
+          hash: txHash,
+        };
+      })
+    );
+
     res.status(200).json({
-      message: "",
+      message: "Transaction history fetched successfully",
+      data: transactions,
     });
-  } catch (error) {}
+  } catch (error: any) {
+    console.error(
+      "Error querying transaction details:",
+      error?.response?.data || error.message
+    );
+    res.status(500).json({
+      message: "Failed to fetch transaction history",
+      error: error?.response?.data || error.message,
+    });
+  }
 };
+
+const getAllCompletedRoadmaps = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    // Query all completed roadmaps from the database
+    const completedRoadmaps = await CompletedRoadmap.findAll();
+
+    // If no roadmaps found, send an empty array with a 200 status
+    if (!completedRoadmaps || completedRoadmaps.length === 0) {
+      res.status(200).json({
+        message: "No completed roadmaps found",
+        roadmaps: [],
+      });
+    } else {
+      // Send the retrieved roadmaps in the response
+      res.status(200).json({
+        message: "Completed roadmaps retrieved successfully",
+        roadmaps: completedRoadmaps,
+      });
+    }
+  } catch (error) {
+    // Handle errors, such as database connection issues, etc.
+    console.error("Error retrieving completed roadmaps:", error);
+    res.status(500).json({
+      message: "An error occurred while retrieving completed roadmaps",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
 export {
   initializeRoadmap,
   updateRoadmap,
   getAllRoadmaps,
   releaseFunds,
   queryTransaction,
+  queryAddressHistory,
+  getAllCompletedRoadmaps,
 };
