@@ -1,12 +1,12 @@
-# ♻️ Blockchain Plastic Credit Backend
+# ♻️ Blockchain Plastik REFI Backend
 
-> 🛠️ Backend system for managing the lifecycle of **roadmaps** and **plastic credits** on the **Cardano blockchain** using smart contracts and Lucid SDK.
+> 🛠️ Backend system for managing the lifecycle of **roadmaps**, **plastik credits** and **plastik token** on the **Cardano blockchain** using smart contracts and Lucid SDK.
 
 ---
 
 ## 📚 Table of Contents
 
-- [♻️ Blockchain Plastic Credit Backend](#️-blockchain-plastic-credit-backend)
+- [♻️ Blockchain Plastik REFI Backend](#️-blockchain-plastik-refi-backend)
   - [📚 Table of Contents](#-table-of-contents)
   - [📖 Overview](#-overview)
   - [📁 Directory Structure](#-directory-structure)
@@ -27,7 +27,7 @@
 
 ## 📖 Overview
 
-This backend manages roadmap-based funding tied to **plastic credit tokens**. It leverages **smart contracts**, **Lucid SDK**, and **Sequelize ORM** to facilitate:
+This backend manages roadmap-based funding tied to **plastik credit tokens**. It leverages **smart contracts**, **Lucid SDK**, and **Sequelize ORM** to facilitate:
 
 - 🔄 Initializing and updating roadmap progress
 - 💰 Releasing funds on roadmap completion
@@ -98,7 +98,7 @@ This backend manages roadmap-based funding tied to **plastic credit tokens**. It
 | `PLASTIK`                                                 | Asset ID for Plastik token          |
 | `USDM`                                                    | Asset ID for USDM token             |
 | `DEAD_WALLET_ADDRESS`                                     | Wallet address to burn tokens       |
-| `PLASTIC_CREDIT_ASSET_ID`                                 | Asset ID for PC token (for queries) |
+| `PLASTIK_CREDIT_ASSET_ID`                                 | Asset ID for PC token (for queries) |
 | `PC_WALLET`                                               | Mnemonic seed for PC wallet         |
 | `PC_ASSET_ID`                                             | Asset ID for PC token               |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | PostgreSQL credentials              |
@@ -109,7 +109,7 @@ This backend manages roadmap-based funding tied to **plastic credit tokens**. It
 
 ### 📌 Roadmap Controller (`roadmap.controller.ts`)
 
-Handles on-chain operations for plastic credit roadmaps:
+Handles on-chain operations for plastik credit roadmaps:
 
 1. **`initializeRoadmap`** - 🟢 Creates a new roadmap on-chain
 2. **`updateRoadmap`** - 🔄 Updates roadmap progress and metrics
@@ -121,10 +121,10 @@ Handles on-chain operations for plastic credit roadmaps:
 
 ### 👤 User Controller (`user.controller.ts`)
 
-Manages plastic credit transactions:
+Manages plastik credit transactions:
 
 - **`initializeLucid`** - Initializes Lucid SDK
-- **`sentPC`** - Sends plastic credits to a user-specified address
+- **`sentPC`** - Sends plastik credits to a user-specified address
 
 ---
 
@@ -183,7 +183,7 @@ Defines schema for storing completed roadmap details.
 
 | Method | Endpoint   | Description                |
 | ------ | ---------- | -------------------------- |
-| POST   | `/send-pc` | Send plastic credit tokens |
+| POST   | `/send-pc` | Send plastik credit tokens |
 
 ---
 
