@@ -1,0 +1,419 @@
+{
+	"info": {
+		"_postman_id": "e59ab563-5022-40f3-858a-caca84183424",
+		"name": "Plastiks",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38117817"
+	},
+	"item": [
+		{
+			"name": "Get All Roadmaps",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/roadmap/all",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"all"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Initialize Roadmap 1",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"preId\":\"pre1\",\n    \"roadmapId\":\"roadmap1\",\n    \"roadmapName\":\"CleanCoast Mission\",\n    \"roadmapDescription\": \"Focused on removing plastic waste from coastal regions and supporting local recycling units.\",\n    \"prePkh\":\"b93e78824bcf5c34a62b2f573727b4bb8a1365ebd152bd6243ff8dc6\",\n    \"preSkh\":\"a786470d2a2c8bc00ecaf662a64407364be25325f33d1cb9446b4bd7\",\n    \"totalPlasticCredits\":100,\n    \"totalPlasticTokens\":10000,\n    \"totalPlastic\":100\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/initialize",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"initialize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Initialize Roadmap 2",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"preId\":\"pre1\",\n    \"roadmapId\":\"roadmap2\",\n    \"roadmapName\":\"CleanCoast Mission\",\n    \"roadmapDescription\": \"Focused on removing plastic waste from coastal regions and supporting local recycling units.\",\n    \"prePkh\":\"b93e78824bcf5c34a62b2f573727b4bb8a1365ebd152bd6243ff8dc6\",\n    \"preSkh\":\"a786470d2a2c8bc00ecaf662a64407364be25325f33d1cb9446b4bd7\",\n    \"totalPlasticCredits\":100,\n    \"totalPlasticTokens\":10000,\n    \"totalPlastic\":100\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/initialize",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"initialize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Initialize Roadmap 3",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"preId\":\"pre2\",\n    \"roadmapId\":\"roadmap3\",\n    \"roadmapName\":\"Green Village Initiative\",\n    \"roadmapDescription\": \"Description: Empowering rural communities to collect, recycle, and monetize plastic waste through verified credits.\",\n    \"prePkh\":\"e304014e25b126e74673cc13277f4800a6a3fefba0f3f0c63e5f8eda\",\n    \"preSkh\":\"f7f2c8d1aef0d5d28911ec1992cbe761499d2c03529cfef67d36db1b\",\n    \"totalPlasticCredits\":50,\n    \"totalPlasticTokens\":5000,\n    \"totalPlastic\":50\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/initialize",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"initialize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Initialize Roadmap 4",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"preId\":\"pre3\",\n    \"roadmapId\":\"roadmap4\",\n    \"roadmapName\":\"Plastic-Free Schools\",\n    \"roadmapDescription\": \"Partnering with educational institutions to build plastic-free environments and promote sustainable habits.\",\n    \"prePkh\":\"b2dfba75999269fab9b410406ec83c205b90b0a43fcfcef607a82674\",\n    \"preSkh\":\"66904934ad3fe2ac8740a565d948fc8271b5c7dbac1f384675b4368e\",\n    \"totalPlasticCredits\":1000,\n    \"totalPlasticTokens\":100000,\n    \"totalPlastic\":1000\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/initialize",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"initialize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Initialize Roadmap 5",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"preId\":\"pre4\",\n    \"roadmapId\":\"roadmap5\",\n    \"roadmapName\":\"River Rescue Plan\",\n    \"roadmapDescription\": \"A mission to intercept and recycle plastic pollution from major river systems before reaching oceans.\",\n    \"prePkh\":\"400ee769198080a2f6a6036a2a33ef527311f864c24cabf7028abb9c\",\n    \"preSkh\":\"d4bb00e91a1dd6b4fca21f81c6bb748faec80423e46e736ed6abe9fa\",\n    \"totalPlasticCredits\":100,\n    \"totalPlasticTokens\":10000,\n    \"totalPlastic\":100\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/initialize",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"initialize"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Roadmap 1",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"preId\":\"pre1\",\n    \"roadmapId\":\"roadmap1\",\n    \"plasticCreditSold\": 50\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/update",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"update"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Release Funds for Roadmap 1",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"preId\":\"pre1\",\n    \"roadmapId\":\"roadmap1\",\n    \"plasticCreditSold\": 50\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/update",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"update"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Query Transaction",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"txHash\": \"522dee3c5553cac8ba1fe1ebd9b1b8b9594ddd5c08d49fc0bb9f21514564c37a\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/query/txs",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"query",
+						"txs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Query Address History",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"address\": \"addr_test1wza00f6zecqlep3vxa78hc29weyet7hd3xlj8sz6awjts2q34k334\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/query/addr",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"query",
+						"addr"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "send-pc",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"address\":\"addr_test1qpppxs0tpkfe0d4fdpwt4zp9qkw58ykk56lkegsae5wf8xws04ahatlde5v7z6ct8w49sr7q0rrazxy6d4qrrvk9rldsvx96t3\",\n    \"amount\": 10\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/user/send-pc",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"user",
+						"send-pc"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All through Address",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "api-key",
+						"value": "0nrS4s8zSOaaA8iaMxEulYeRg3SlYP87"
+					}
+				],
+				"url": {
+					"raw": "https://preprod.gomaestro-api.org/v1/addresses/addr_test1wza00f6zecqlep3vxa78hc29weyet7hd3xlj8sz6awjts2q34k334/utxos?order=asc",
+					"protocol": "https",
+					"host": [
+						"preprod",
+						"gomaestro-api",
+						"org"
+					],
+					"path": [
+						"v1",
+						"addresses",
+						"addr_test1wza00f6zecqlep3vxa78hc29weyet7hd3xlj8sz6awjts2q34k334",
+						"utxos"
+					],
+					"query": [
+						{
+							"key": "order",
+							"value": "asc"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "all completed roadmap",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/roadmap/completed/all",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"completed",
+						"all"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"address\":\"addr_test1qpppxs0tpkfe0d4fdpwt4zp9qkw58ykk56lkegsae5wf8xws04ahatlde5v7z6ct8w49sr7q0rrazxy6d4qrrvk9rldsvx96t3\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/roadmap/history/addr",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"roadmap",
+						"history",
+						"addr"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
