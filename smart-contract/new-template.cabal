@@ -1,0 +1,73 @@
+cabal-version:      2.4
+name:               smart-contract
+version:            1.0.0
+description:        plutus examples
+author:             Aiquant team
+
+Flag unexpected_thunks
+  Description:   Turn on unexpected thunks checks
+  Default:       False
+--
+common base
+  build-depends: base >= 4.14 && < 4.15
+
+common common-all
+  default-language:     Haskell2010
+
+  default-extensions:   NoImplicitPrelude
+                        OverloadedStrings
+
+  ghc-options:          -Wall
+                        -Wcompat
+                        -Wincomplete-record-updates
+                        -Wpartial-fields
+                        -Wredundant-constraints
+                        -Wincomplete-uni-patterns
+                        -Wmissing-export-lists
+                        -Wpartial-fields
+                        -Wmissing-deriving-strategies
+                        -Wunused-packages
+  build-depends:      bytestring
+                    , cardano-api
+                    , plutus-ledger-api
+                    , plutus-tx
+                    , base
+                    , plutus-tx-plugin
+                    , serialise
+                    , cardano-api
+                    , tasty
+                    , tasty-hunit
+
+
+  ghc-options: -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+
+library
+  import:               common-all, base
+
+  if flag(unexpected_thunks)
+    cpp-options: -DUNEXPECTED_THUNKS
+
+  hs-source-dirs:       src
+
+-- Exposed your modules here
+  exposed-modules:
+                  -- Escrow.Validator,
+                  -- Escrow.Compiler,
+                  Refi.Validator,
+                  Refi.Compiler
+
+test-suite test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       
+    base,
+    tasty,
+    tasty-hunit,
+    plutus-ledger,
+    plutus-ledger-api,
+    plutus-tx,
+    plutus-core,
+    containers,
+    smart-contract
+  default-language:    Haskell2010

@@ -1,0 +1,55 @@
+datum will contain:
+{
+  "constructor": 0,
+  "fields": [
+    { "bytes": "7072652d6964" },                          // preId: "pre-id"
+    { "bytes": "726f61646d61702d6964" },                  // roadmapId: "roadmap-id"
+    { "int": 0 },                                         // progress: 0
+    { "bytes": "da95c3d42650c08cbd285da1bd2f9b348ace4bde27c299a38944e093" }, // adminPkh
+    { "bytes": "6e2228b730fc0c99a9dcf8fec341115639b0ebdbd7600d20cf0651cf" }, // prePkh
+    { "int": 1000 },                                      // totalPlasticCredits
+    { "int": 0 },                                         // soldPlasticCredits
+    { "int": 1000 },                                       // totalPlasticTokens
+    { "int": 0 }                                          // sentPlasticTokens
+  ]
+}
+
+updated datum:
+{
+  "constructor": 0,
+  "fields": [
+    { "bytes": "7072652d6964" },  // preId
+    { "bytes": "726f61646d61702d6964" },  // roadmapId
+    { "int": 10 },  // progress
+    { "bytes": "da95c3d42650c08cbd285da1bd2f9b348ace4bde27c299a38944e093" },  // adminPkh
+    { "bytes": "6e2228b730fc0c99a9dcf8fec341115639b0ebdbd7600d20cf0651cf" },  // prePkh
+    { "int": 1000 },  // totalPlasticCredits (unchanged)
+    { "int": 100 },   // soldPlasticCredits (incremented)
+    { "int": 500 },   // totalPlasticTokens (unchanged)
+    { "int": 50 }     // sentPlasticTokens (incremented)
+  ]
+}
+
+
+
+Redeemer will be of two types first to update progress and second to release
+
+Redeemer for UpdateProgress (e.g., to update progress to 30%)
+{
+  "constructor": 0,
+  "fields": [
+    { "int": 30 }
+  ]
+}
+constructor: 0 corresponds to the first variant: UpdateProgress Integer
+
+fields: [ { "int": 30 } ] — this is the new progress value being passed
+
+Redeemer for Release
+{
+  "constructor": 1,
+  "fields": []
+}
+constructor: 1 matches the second variant: Release
+
+No additional data fields required

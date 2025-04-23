@@ -1,0 +1,62 @@
+# Lock transaction to smart contract
+cardano-cli conway transaction build \
+  --tx-in 2460460cc97fa4cb16639f0cae0cedaa6fed631cd662dc9d7bd39e3ac800e503#1 \
+  --tx-out "$(cat escrow.addr)+40000000" \
+  --tx-out-inline-datum-file datum.json \
+  --change-address $(< "./plastiks/payment.addr") \
+  --out-file lock.tx \
+  --testnet-magic 1 \
+
+# Sign transaction
+ 
+cardano-cli conway transaction sign \
+   --tx-file lock.tx \
+   --signing-key-file "./plastiks/payment.skey" \
+   --out-file lock.tx.signed
+ 
+# Submit transaction
+cardano-cli conway transaction submit \
+  --tx-file lock.tx.signed \
+  --testnet-magic 1 
+
+# View Utxo
+ 
+## for script address
+cardano-cli query utxo \
+  --address $(< script.addr) \
+  --testnet-magic 1 \
+  --output-json \
+  --socket-path /home/sumit-bera/git/cardano-node/preprod/db/node.socket
+# for admin address
+cardano-cli query utxo \
+  --address $(< admin.addr) \
+  --testnet-magic 1 \
+  --output-json \
+  --socket-path /home/sumit-bera/git/cardano-node/preprod/db/node.socket
+ 
+# view hash
+cardano-cli conway transaction txid --tx-file lock.tx.signed
+ 
+# Unlock transaction from smart contract
+cardano-cli conway transaction build \
+  --tx-in 5f012fed3365bf78b6983bfe74f716b62bb6ce1df1597b6281482856163a6ab7#0 \
+  --tx-in-script-file escrow.json \
+  --tx-in-inline-datum-present \
+  --tx-in-redeemer-file redeemer.json \
+  --tx-in-collateral 8fb81ef3bb4a5b90f16ae5f05d466e5c79dbc1c4e3fcf12f96c68b3ccaf62d9f#1 \
+  --change-address $(cat "pre/payment.addr") \
+  --required-signer-hash $(cardano-cli address key-hash --payment-verification-key-file "plastiks/payment.vkey") \
+  --required-signer-hash $(cardano-cli address key-hash --payment-verification-key-file "pre/payment.vkey") \
+  --testnet-magic 1 \
+  --out-file unlock.tx
+# Unlock sign transaction
+  cardano-cli conway transaction sign \
+  --tx-body-file unlock.tx \
+  --signing-key-file admin.skey \
+  --signing-key-file pre.skey \
+  --testnet-magic 1 \
+  --out-file unlock.tx.signed
+# Unlock submit
+cardano-cli conway transaction submit \
+  --tx-file unlock.tx.signed \
+  --testnet-magic 1
