@@ -120,7 +120,7 @@ const initializeRoadmap = async (
     // 409 Conflict
     if (matchedUtxo) {
       res.status(409).json({
-        message: "Roadmap already exists",
+        message: "Roadmap already exists in smart contract",
         success: false,
       });
       return;
@@ -143,8 +143,8 @@ const initializeRoadmap = async (
       BigInt(0),
     ]);
 
-    console.log("Datum to lock:", datumToLock);
-    console.log("Refi Address:", RefiAddress);
+    // console.log("Datum to lock:", datumToLock);
+    // console.log("Refi Address:", RefiAddress);
     const AMOUNT = 3_000_000; // 3 ADA
     const tx = await lucid
       .newTx()
@@ -169,8 +169,9 @@ const initializeRoadmap = async (
   } catch (err) {
     console.error(err);
     res.status(500).json({
-      error: "Error occured during the creation of roadmap",
+      message: "Error occured during the creation of roadmap",
       success: false,
+      error: err,
     });
     return;
   }
@@ -202,7 +203,7 @@ const updateRoadmap = async (req: Request, res: Response): Promise<void> => {
       );
     });
 
-    console.log("matchedUtxo", matchedUtxo);
+    // console.log("matchedUtxo", matchedUtxo);
 
     if (!matchedUtxo) {
       res.status(404).json({ error: "Roadmap UTXO not found" });
@@ -271,7 +272,7 @@ const updateRoadmap = async (req: Request, res: Response): Promise<void> => {
       success: true,
     });
   } catch (err) {
-    console.error("❌ Error in updateRoadmap:", err);
+    console.error("Error in updateRoadmap:", err);
     res.status(500).json({
       message: "Something went wrong while updating Roadmap",
       success: false,
@@ -291,15 +292,16 @@ const getAllRoadmaps = async (req: Request, res: Response): Promise<void> => {
 
     const RefiAddress = lucid.utils.validatorToAddress(RefiScript);
     const utxos = await lucid.utxosAt(RefiAddress);
+    // console.log("utxos", utxos);
+
     const allDetails: Array<ProjectDatum> = [];
 
     utxos
       .map((utxo) => {
-        if (!utxo.datum) return null;
-
         // Decode datum with proper typing
+        if (!utxo.datum) return;
         const decodedDatum = Data.from(utxo.datum) as Constr<Data>;
-        console.log("Decoded Datum:", decodedDatum);
+        // console.log("Decoded Datum:", decodedDatum);
         let progress = Number(decodedDatum.fields[4] as bigint);
         if (progress > 0) {
           progress /= 100;
@@ -331,7 +333,11 @@ const getAllRoadmaps = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      message: "Something went wrong while fetching roadmaps",
+      error: err,
+      success: false,
+    });
   }
 };
 
@@ -360,10 +366,10 @@ const releaseFunds = async (req: Request, res: Response): Promise<void> => {
       );
     });
 
-    console.log("matchedUtxo", matchedUtxo);
+    // console.log("matchedUtxo", matchedUtxo);
 
     if (!matchedUtxo) {
-      res.status(404).json({ error: "Roadmap UTXO not found" });
+      res.status(404).json({ error: "Roadmap UTXO not found", success: false });
       return;
     }
 
@@ -380,19 +386,19 @@ const releaseFunds = async (req: Request, res: Response): Promise<void> => {
       prePaymentCredentail,
       preStakeCredential
     );
-    console.log(preAddress);
+    // console.log(preAddress);
     const plastikValue = BigInt(matchedUtxo.assets[plastikAssetId]);
-    console.log(plastikValue);
+    // console.log(plastikValue);
     // 4. Sent 2% of plastik token(which will change through governance) locked in contract to deadWallet
     const deadWallet = process.env.DEAD_WALLET_ADDRESS!;
     const deadWalletValue = (plastikValue * 2n) / 100n;
-    console.log("deadWalletValue", deadWalletValue);
+    // console.log("deadWalletValue", deadWalletValue);
 
     const plastikTokenSendBackToAdmin = plastikValue - deadWalletValue;
-    console.log("plastikTokenSendBackToAdmin", plastikTokenSendBackToAdmin);
+    // console.log("plastikTokenSendBackToAdmin", plastikTokenSendBackToAdmin);
 
     const usdmValue = plastikTokenSendBackToAdmin / 100n;
-    console.log("usdmValue", usdmValue);
+    // console.log("usdmValue", usdmValue);
 
     const tx = await lucid
       .newTx()
@@ -430,7 +436,7 @@ const releaseFunds = async (req: Request, res: Response): Promise<void> => {
       recoveredPlastic: Number(oldDatum.fields[13] as bigint),
     };
     await CompletedRoadmap.create(completedRoadmap);
-    console.log("Completed Roadmap:", completedRoadmap);
+    // console.log("Completed Roadmap:", completedRoadmap);
 
     res.status(201).json({
       message: "Funds released successfully",
@@ -449,15 +455,16 @@ const releaseFunds = async (req: Request, res: Response): Promise<void> => {
 
 const queryTransaction = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { txHash }: QueryTransaction = req.body;
+    const { txHash, outputIndex }: QueryTransaction = req.body;
     const lucid = await initializeLucid();
     const outRef: OutRef[] = [
       {
         txHash,
-        outputIndex: 0,
+        outputIndex,
       },
     ];
     const utxo = await lucid.provider.getUtxosByOutRef(outRef);
+    // console.log("utxo", utxo);
     if (!utxo || utxo.length == 0) {
       res.status(404).json({
         message: "Utxo not found wait for sometime or check your txHash",
@@ -482,7 +489,6 @@ const queryTransaction = async (req: Request, res: Response): Promise<void> => {
       recoveredPlastic: Number(decodedDatum.fields[13] as bigint),
     };
 
-    console.log(utxo);
     res.status(200).json({
       message: "Utxo fetched succesfully",
       success: true,
@@ -605,4 +611,5 @@ export {
   queryTransaction,
   queryAddressHistory,
   getAllCompletedRoadmaps,
+  initializeLucid,
 };

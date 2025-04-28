@@ -40,4 +40,5 @@ export type ReleaseFundsRequest = {
 
 export type QueryTransaction = {
   txHash: string;
+  outputIndex: number;
 };

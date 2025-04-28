@@ -16,11 +16,18 @@ const initializeLucid = async () => {
 
 const sentPC = async (req: Request, res: Response) => {
   try {
+    const { address, amount } = req.body;
+    if (!address || !amount) {
+      res.status(400).json({
+        message: "Address and amount are required",
+        success: false,
+      });
+      return;
+    }
     const lucid = await initializeLucid();
     const seed = process.env.PC_WALLET!;
     lucid.selectWalletFromSeed(seed);
-    const { address, amount } = req.body;
-    console.log(amount);
+    // console.log(amount);
 
     const pcAssetId = process.env.PC_ASSET_ID!;
 
