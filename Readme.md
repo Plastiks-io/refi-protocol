@@ -174,6 +174,9 @@ addr_test1qregzqux7knjhg3v8npcp3t35w0dngwkz80ssgvywpk0ade9uy5qk6vl70ntchwh6qysnl
 | **Benefits**       | Stable payments, reduced Plastik sell pressure, ecosystem stability      |
 | **Test Coverage**  | Milestone completion, USDM transfer validation, Plastik token unaffected |
 
+### Release Fund Controller for Processing USDM Payments
+[Releasing Funds](./backend/src/controllers/roadmap.controller.ts#L344)
+
 ### Test Case for Releasing Funds
 
 [Releasing Funds Test Section](./backend/test/roadmap.test.ts#L440)
