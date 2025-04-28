@@ -30,6 +30,7 @@ This repository includes the full **frontend**, **backend**, and **smart contrac
     - [Where and How USDM is Used](#where-and-how-usdm-is-used)
     - [Admin Address](#admin-address)
     - [Summary](#summary)
+    - [Release Fund Controller for Processing USDM Payments](#release-fund-controller-for-processing-usdm-payments)
     - [Test Case for Releasing Funds](#test-case-for-releasing-funds)
 
 ---
