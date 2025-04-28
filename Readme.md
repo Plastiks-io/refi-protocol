@@ -32,6 +32,8 @@ This repository includes the full **frontend**, **backend**, and **smart contrac
     - [Summary](#summary)
     - [Release Fund Controller for Processing USDM Payments](#release-fund-controller-for-processing-usdm-payments)
     - [Test Case for Releasing Funds](#test-case-for-releasing-funds)
+  - [Assets Used in Preprod Network](#assets-used-in-preprod-network)
+  - [Transaction Hash to Verify that USDM is Sent to the Pre Wallet](#transaction-hash-to-verify-that-usdm-is-sent-to-the-pre-wallet)
 
 ---
 
@@ -176,8 +178,30 @@ addr_test1qregzqux7knjhg3v8npcp3t35w0dngwkz80ssgvywpk0ade9uy5qk6vl70ntchwh6qysnl
 | **Test Coverage**  | Milestone completion, USDM transfer validation, Plastik token unaffected |
 
 ### Release Fund Controller for Processing USDM Payments
+
 [Releasing Funds](./backend/src/controllers/roadmap.controller.ts#L344)
 
 ### Test Case for Releasing Funds
 
 [Releasing Funds Test Section](./backend/test/roadmap.test.ts#L440)
+
+## Assets Used in Preprod Network
+
+The following asset IDs are used in the Preprod Cardano network:
+
+- **PLASTIK TOKEN**  
+  `e0b4a2454475355655a7449d3a064b38a22ba6fc83c637e2413ac172504c415354494b`
+
+- **USDM**  
+  `e8f329da44fb66d033d26a566b0f9f743493b0cf18458c051ac442615553444d`
+
+- **PLASTIK CREDIT**  
+  `be0df58be0d65b9a944bea9488fc60d5320e5bea9b1ba4f5aece0ae1504c4153544943`
+
+## Transaction Hash to Verify that USDM is Sent to the Pre Wallet
+
+- **Hash**  
+  `d52d27538d8faead63f35bada8859eac3eb979e939a370a66b446ed456a42d91`
+
+- **Link**
+  `https://preprod.cardanoscan.io/transaction/d52d27538d8faead63f35bada8859eac3eb979e939a370a66b446ed456a42d91`
