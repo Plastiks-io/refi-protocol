@@ -9,7 +9,6 @@ const admin = () => {
   );
   return (
     <div className="mx-auto px-4 py-6 bg-white text-black md:px-10 lg:px-20 min-h-screen">
-
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-2">Active Roadmaps</h2>
         <p className="text-gray-600 mb-6">

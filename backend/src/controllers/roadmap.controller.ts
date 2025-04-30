@@ -515,46 +515,99 @@ const queryAddressHistory = async (
       res.status(400).json({ message: "Address is required" });
       return;
     }
+
     const blockfrostUrl = process.env.BLOCKFROST_URL;
     const BLOCKFROST_API_KEY = process.env.BLOCKFROST_PROJECT_ID;
+    const pcAssetId = process.env.PC_ASSET_ID!;
+
     // Step 1: Fetch transaction hashes
     const txHashesRes = await axios.get(
-      `${blockfrostUrl}/addresses/${address}/txs`,
+      `${blockfrostUrl}/addresses/${address}/transactions`,
       {
         headers: { project_id: BLOCKFROST_API_KEY },
         params: { page, count, order },
       }
     );
 
-    const txHashes: string[] = txHashesRes.data;
+    const allTransactions = txHashesRes.data;
 
-    // Step 2: Fetch detailed info for each transaction hash
+    // Step 2: Fetch only UTXO info (to reduce API usage)
     const transactions = await Promise.all(
-      txHashes.map(async (txHash) => {
-        const txDetailsRes = await axios.get(`${blockfrostUrl}/txs/${txHash}`, {
-          headers: { project_id: BLOCKFROST_API_KEY },
+      allTransactions.map(async (transaction: any) => {
+        const txUtxoRes = await axios.get(
+          `${blockfrostUrl}/txs/${transaction.tx_hash}/utxos`,
+          {
+            headers: { project_id: BLOCKFROST_API_KEY },
+          }
+        );
+
+        const tx = txUtxoRes.data;
+
+        let inputAda = 0,
+          outputAda = 0;
+        let inputPC = 0,
+          outputPC = 0;
+
+        // Process inputs
+        tx.inputs.forEach((input: any) => {
+          if (input.address === address) {
+            input.amount.forEach((amt: any) => {
+              if (amt.unit === "lovelace") inputAda += Number(amt.quantity);
+              if (amt.unit === pcAssetId) inputPC += Number(amt.quantity);
+            });
+          }
         });
 
-        const tx = txDetailsRes.data;
+        // Process outputs
+        tx.outputs.forEach((output: any) => {
+          if (output.address === address) {
+            output.amount.forEach((amt: any) => {
+              if (amt.unit === "lovelace") outputAda += Number(amt.quantity);
+              if (amt.unit === pcAssetId) outputPC += Number(amt.quantity);
+            });
+          }
+        });
 
-        // Dummy placeholders for custom data
-        const pcAssetId = process.env.PLASTIC_CREDIT_ASSET_ID!;
-        const pcAmount = tx.output_amount?.find(
-          (asset: any) => asset.unit === pcAssetId
-        )?.quantity;
-        const lovelace = tx.output_amount?.[0]?.quantity || 0;
-        const ada = (Number(lovelace) / 1_000_000).toFixed(2);
+        // Net values and direction
+        const netAda = outputAda - inputAda;
+        const netPC = outputPC - inputPC;
+        const direction =
+          netAda > 0 ? "received" : netAda < 0 ? "sent" : "self";
+
+        // Estimate fee = total input - total output (ADA only)
+        const totalInputAda = tx.inputs.reduce((sum: number, input: any) => {
+          const lovelace = input.amount.find(
+            (amt: any) => amt.unit === "lovelace"
+          );
+          return sum + (lovelace ? Number(lovelace.quantity) : 0);
+        }, 0);
+        const totalOutputAda = tx.outputs.reduce((sum: number, output: any) => {
+          const lovelace = output.amount.find(
+            (amt: any) => amt.unit === "lovelace"
+          );
+          return sum + (lovelace ? Number(lovelace.quantity) : 0);
+        }, 0);
+        const fee = (totalInputAda - totalOutputAda) / 1_000_000;
 
         return {
-          date: new Date(tx.block_time * 1000).toLocaleDateString("en-US"),
-          transactionFee: `${(Number(tx.fees) / 1_000_000).toFixed(2)} ADA`,
-          ada: `${ada} ADA`,
-          pcAmount: pcAmount,
-          pcAssetId: pcAssetId,
-          hash: txHash,
+          date: new Date(transaction.block_time * 1000).toLocaleDateString(
+            "en-US"
+          ),
+          transactionFee: `${fee.toFixed(2)} ADA`,
+          amount: `${(Math.abs(netAda) / 1_000_000).toFixed(2)} ADA ${
+            Math.abs(netPC) > 0 ? "+ " + Math.abs(netPC) + " P.C" : ""
+          }`,
+          tokenId: netPC > 0 ? pcAssetId : "N/A",
+          direction,
+          pcAssetId:
+            Math.abs(netPC) > 0
+              ? `https://preprod.cexplorer.io/asset/${pcAssetId}`
+              : "N/A",
+          hash: `https://preprod.cardanoscan.io/transaction/${transaction.tx_hash}`,
         };
       })
     );
+    console.log("Api Called");
 
     res.status(200).json({
       message: "Transaction history fetched successfully",

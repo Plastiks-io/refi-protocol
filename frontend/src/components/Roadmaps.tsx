@@ -51,6 +51,7 @@ const Roadmaps = () => {
               <button
                 className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-red-500 text-white rounded-full focus:outline-none cursor-pointer"
                 onClick={toggleFilters}
+                aria-label="X"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -139,7 +140,7 @@ const Roadmaps = () => {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-32">
+        <div className="flex justify-center items-center h-32" role="status">
           <Loader2 className="animate-spin w-10 h-10 text-gray-600" />
         </div>
       ) : isError ? (
@@ -148,7 +149,9 @@ const Roadmaps = () => {
         <p className="text-gray-600">No matching roadmaps found.</p>
       ) : (
         filteredData.map((roadmap, index) => (
-          <RoadmapCard key={index} {...roadmap} />
+          <div data-testid="roadmap-card" key={index}>
+            <RoadmapCard key={index} {...roadmap} />
+          </div>
         ))
       )}
     </div>

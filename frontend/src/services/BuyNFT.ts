@@ -46,6 +46,7 @@ const sendNft = async (wallet: BrowserWallet, quantity: number) => {
     return txHash;
   } catch (error) {
     console.error("Error sending NFT:", error);
+    toast.error("Failed to send NFT");
     throw new Error("Failed to send NFT");
   }
 };

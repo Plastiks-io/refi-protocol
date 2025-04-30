@@ -10,6 +10,7 @@ import { RootState } from "../redux/store";
 import { setWallet, disconnectWallet } from "../redux/walletSlice";
 import Popup from "./Popup";
 import { toast } from "sonner";
+import { resetTransactions } from "../redux/TransactionSlice";
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -23,7 +24,7 @@ const Navbar = () => {
   const [popupOpen, setPopupOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
-  const adminAddress = import.meta.env.VITE_ADMIN_WALLET_ADDRESS.toLowerCase();
+  const adminAddress = import.meta.env.VITE_ADMIN_WALLET_ADDRESS?.toLowerCase() || "";
 
   const connectWallet = async () => {
     // console.log("Connecting wallet...");
@@ -136,7 +137,10 @@ const Navbar = () => {
                   {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                 </span>
                 <button
-                  onClick={() => dispatch(disconnectWallet())}
+                  onClick={() => {
+                    dispatch(disconnectWallet());
+                    dispatch(resetTransactions());
+                  }}
                   className="text-red-600 hover:text-red-800 text-sm font-medium"
                 >
                   Disconnect
@@ -149,6 +153,8 @@ const Navbar = () => {
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
+              data-testid="menu-button"
+              aria-label="Open mobile menu"
               className="p-2 rounded-md text-gray-500 hover:text-gray-900"
             >
               <Menu size={24} />
@@ -159,7 +165,10 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden bg-white shadow-lg p-4">
+        <div
+          className="md:hidden bg-white shadow-lg p-4"
+          data-testid="mobile-menu"
+        >
           <div className="flex flex-col items-center space-y-4">
             <Link
               to="/"

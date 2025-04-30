@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
@@ -26,5 +27,10 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ["lucid-cardano"], // Exclude lucid-cardano from optimization
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: "./src/setupTests.ts",
   },
 });

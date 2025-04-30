@@ -17,9 +17,7 @@ const CommunityStats = ({ stats, votingAllowed }: CommunityStatsProps) => {
         !votingAllowed ? "border border-gray-200" : ""
       }`}
     >
-      <div>
-        <h2 className="font-bold text-xl">Current Statistics</h2>
-      </div>
+      <h2 className="font-bold text-xl">Current Statistics</h2>
       <div
         className={`${
           votingAllowed
@@ -29,8 +27,10 @@ const CommunityStats = ({ stats, votingAllowed }: CommunityStatsProps) => {
       >
         {Object.entries(stats).map(([key, value]) => (
           <div key={key}>
-            <h1 className="text-gray-500 capitalize">
-              {key.replace(/([A-Z])/g, " $1")}
+            <h1 className="text-gray-500">
+              {key
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (str) => str.toUpperCase())}{" "}
             </h1>
             <p className="text-2xl font-bold">{value}</p>
           </div>

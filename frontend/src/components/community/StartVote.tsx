@@ -98,6 +98,7 @@ const StartVote = ({
           <div
             className="bg-black h-2 rounded-full"
             style={{ width: `${newRetirementPercentage}%` }}
+            role="progressbar"
           ></div>
         </div>
       </div>

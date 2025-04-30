@@ -16,13 +16,25 @@ const Footer = () => {
 
         {/* Social Icons */}
         <div className="flex space-x-6">
-          <a href="#" className="text-white hover:text-gray-400 transition">
+          <a
+            href="#"
+            className="text-white hover:text-gray-400 transition"
+            data-testid="icon-twitter"
+          >
             <FontAwesomeIcon icon={faTwitter} size="lg" />
           </a>
-          <a href="#" className="text-white hover:text-gray-400 transition">
+          <a
+            href="#"
+            className="text-white hover:text-gray-400 transition"
+            data-testid="icon-discord"
+          >
             <FontAwesomeIcon icon={faDiscord} size="lg" />
           </a>
-          <a href="#" className="text-white hover:text-gray-400 transition">
+          <a
+            href="#"
+            className="text-white hover:text-gray-400 transition"
+            data-testid="icon-github"
+          >
             <FontAwesomeIcon icon={faGithub} size="lg" />
           </a>
         </div>

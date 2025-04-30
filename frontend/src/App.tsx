@@ -19,6 +19,11 @@ import { RootState } from "./redux/store";
 import { fetchRoadmaps } from "./redux/roadmapSlice";
 import { fetchCompletedRoadmaps } from "./redux/completedRoadmapSlice";
 import RoadmapDetails from "./components/admin/RoadmapDetails";
+import {
+  FetchParams,
+  fetchTransactions,
+  setPagination,
+} from "./redux/TransactionSlice";
 
 // useEffect(() => {
 
@@ -27,9 +32,21 @@ import RoadmapDetails from "./components/admin/RoadmapDetails";
 export const WalletContext = React.createContext<BrowserWallet | null>(null);
 
 function App() {
-  const walletId = useSelector(
-    (state: RootState) => state.wallet.walletId
-  ) as string;
+  const { walletId, walletAddress } = useSelector(
+    (state: RootState) => state.wallet
+  );
+
+  const { transactions, page, count, order, loading, error } = useSelector(
+    (state: RootState) => state.transactions
+  );
+
+  // Page change handler
+  const handlePageChange = (newPage: number) => {
+    // Update pagination in the Redux store
+    console.log(newPage);
+
+    dispatch(setPagination({ page: newPage }));
+  };
 
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
   const dispatch = useDispatch<AppDispatch>();
@@ -47,7 +64,7 @@ function App() {
 
     if (!selectedWallet) {
       console.log(`Wallet with ID ${walletId} not found.`);
-      setWallet(null); // 👈 Also nullify here in fallback
+      setWallet(null);
       return;
     }
 
@@ -60,7 +77,19 @@ function App() {
     reconnectWallet();
     dispatch(fetchRoadmaps());
     dispatch(fetchCompletedRoadmaps());
-  }, [walletId]);
+  }, [walletId, dispatch]);
+
+  useEffect(() => {
+    if (walletAddress) {
+      const params: FetchParams = {
+        address: walletAddress,
+        page,
+        count,
+        order,
+      };
+      dispatch(fetchTransactions(params));
+    }
+  }, [walletAddress, page, count, order, dispatch]);
 
   return (
     <WalletContext.Provider value={wallet}>
@@ -73,7 +102,20 @@ function App() {
           <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/transactions" element={<Transactions />} />
+              {/* <Route path="/transactions" element={<Transactions />} /> */}
+              <Route
+                path="/transactions"
+                element={
+                  <Transactions
+                    transactions={transactions}
+                    loading={loading}
+                    error={error}
+                    page={page}
+                    count={count}
+                    onPageChange={handlePageChange}
+                  />
+                }
+              />
               <Route path="/community" element={<Community />} />
               <Route
                 path="/admin"

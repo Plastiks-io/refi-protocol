@@ -1,13 +1,5 @@
 import React from "react";
-
-interface Transaction {
-  date: string;
-  transactionFee: string;
-  amount: string;
-  tokenId: string;
-  plasticCredit: string;
-  hash: string;
-}
+import { Transaction } from "../redux/TransactionSlice";
 
 interface Props {
   transactions: Transaction[];
@@ -16,11 +8,22 @@ interface Props {
 const DynamicTable: React.FC<Props> = ({ transactions }) => {
   if (!transactions || transactions.length === 0) {
     return (
-      <p className="text-gray-600 text-center mt-4">
-        No transactions available.
+      <p className="text-red-600 text-center mt-4 font-semibold text-xl">
+        No transactions available please connect your wallet.
       </p>
     );
   }
+
+  // Define fixed column widths (optional: adjust per column)
+  const columnWidths: Record<string, string> = {
+    date: "w-[80px]",
+    transactionFee: "w-[80px]",
+    amount: "w-[150px]",
+    tokenId: "w-[150px]",
+    direction: "w-[80px]",
+    pcAssetId: "w-[80px]",
+    hash: "w-[80px]",
+  };
 
   return (
     <div className="overflow-x-auto rounded-lg">
@@ -30,9 +33,13 @@ const DynamicTable: React.FC<Props> = ({ transactions }) => {
             {Object.keys(transactions[0]).map((key) => (
               <th
                 key={key}
-                className="px-6 py-3 text-left text-l font-semibold text-black capitalize"
+                className={`px-4 py-3 text-left font-semibold text-black capitalize ${
+                  columnWidths[key] || "w-[120px]"
+                }`}
               >
-                {key.replace(/([A-Z])/g, " $1")} {/* Format camelCase keys */}
+                {key
+                  .replace(/([A-Z])/g, " $1")
+                  .replace(/^./, (str) => str.toUpperCase())}
               </th>
             ))}
           </tr>
@@ -40,17 +47,37 @@ const DynamicTable: React.FC<Props> = ({ transactions }) => {
         <tbody>
           {transactions.map((tx, index) => (
             <tr key={index} className="border-t border-gray-200">
-              {Object.values(tx).map((value, i) => (
-                <td key={i} className="px-6 py-4 text-gray-700">
-                  {typeof value === "string" && value.startsWith("http") ? (
-                    <a href={value} className="text-blue-600 underline">
-                      {value}
-                    </a>
-                  ) : (
-                    value
-                  )}
-                </td>
-              ))}
+              {Object.entries(tx).map(([key, value], i) => {
+                // Conditional text color for direction
+                const isDirection = key === "direction";
+                const directionClass =
+                  value === "sent"
+                    ? "text-red-600 font-semibold"
+                    : value === "received"
+                    ? "text-green-600 font-semibold"
+                    : "";
+
+                return (
+                  <td
+                    key={i}
+                    className={`px-4 py-3 break-words whitespace-normal align-top ${
+                      columnWidths[key] || "w-[120px]"
+                    } ${isDirection ? directionClass : "text-gray-700"}`}
+                  >
+                    {typeof value === "string" && value.startsWith("http") ? (
+                      <a
+                        href={value}
+                        className="text-blue-600 underline break-all"
+                        target="_blank"
+                      >
+                        Link
+                      </a>
+                    ) : (
+                      <p className="break-all">{value}</p>
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

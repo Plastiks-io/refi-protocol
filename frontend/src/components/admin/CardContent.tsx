@@ -22,6 +22,7 @@ export default function CardContent({
           <div
             className="bg-black h-2 rounded"
             style={{ width: `${progress}%` }}
+            role="presentation"
           ></div>
         </div>
       )}

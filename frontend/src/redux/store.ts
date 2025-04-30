@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import walletReducer from "./walletSlice";
 import roadmapReducer from "./roadmapSlice";
 import completedRoadmapReducer from "./completedRoadmapSlice";
+import TransactionsReducer from "./TransactionSlice";
 import storageSession from "redux-persist/lib/storage/session"; // Uses sessionStorage
 import { persistReducer, persistStore, PersistConfig } from "redux-persist";
 
@@ -19,6 +20,7 @@ export const store = configureStore({
     wallet: persistedWalletReducer,
     roadmaps: roadmapReducer,
     completedRoadmaps: completedRoadmapReducer,
+    transactions: TransactionsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
