@@ -9,9 +9,11 @@ import {
   Data,
   toText,
   OutRef,
+  Assets,
 } from "lucid-cardano";
 import dotenv from "dotenv";
 import {
+  ArchivedRoadmapRequest,
   InitializeRoadmapRequest,
   ProjectDatum,
   QueryTransaction,
@@ -20,6 +22,7 @@ import {
 } from "../types/roadmap.types.js";
 dotenv.config();
 import CompletedRoadmap from "../models/completedRoadmap.model.js";
+import ArchivedRoadmap from "../models/archivedRoadmap.model.js";
 
 const initializeLucid = async () => {
   const lucid = await Lucid.new(
@@ -109,9 +112,16 @@ const initializeRoadmap = async (
         roadmapId: roadmapId,
       },
     });
-    if (completedRoadmap) {
+    // check if a roadmap already exist with same preId and roadmapId in archived roadmap
+    const archived_Roadmap = await ArchivedRoadmap.findOne({
+      where: {
+        preId: preId,
+        roadmapId: roadmapId,
+      },
+    });
+    if (completedRoadmap || archived_Roadmap) {
       res.status(409).json({
-        message: "Roadmap already exists in completed roadmaps",
+        message: "Roadmap already exists",
         success: false,
       });
       return;
@@ -141,6 +151,7 @@ const initializeRoadmap = async (
       BigInt(0),
       BigInt(totalPlastic || 0),
       BigInt(0),
+      fromText(new Date().toISOString()),
     ]);
 
     // console.log("Datum to lock:", datumToLock);
@@ -238,6 +249,7 @@ const updateRoadmap = async (req: Request, res: Response): Promise<void> => {
       newSentTokens, // updated sent tokens
       oldDatum.fields[12], // totalPlastic
       recoveredPlastic, // updated recovered plastic
+      oldDatum.fields[14], // same initialization time
     ]);
 
     const redeemer = Data.to(new Constr(0, [progress]));
@@ -321,6 +333,7 @@ const getAllRoadmaps = async (req: Request, res: Response): Promise<void> => {
           sentPlasticTokens: Number(decodedDatum.fields[11] as bigint),
           totalPlastic: Number(decodedDatum.fields[12] as bigint),
           recoveredPlastic: Number(decodedDatum.fields[13] as bigint),
+          createdAt: toText(decodedDatum.fields[14] as string),
         };
         allDetails.push(data);
       })
@@ -434,6 +447,7 @@ const releaseFunds = async (req: Request, res: Response): Promise<void> => {
       sentPlasticTokens: Number(oldDatum.fields[11] as bigint),
       totalPlastic: Number(oldDatum.fields[12] as bigint),
       recoveredPlastic: Number(oldDatum.fields[13] as bigint),
+      createdAt: toText(oldDatum.fields[14] as string),
     };
     await CompletedRoadmap.create(completedRoadmap);
     // console.log("Completed Roadmap:", completedRoadmap);
@@ -656,6 +670,243 @@ const getAllCompletedRoadmaps = async (
   }
 };
 
+const archivedRoadmap = async (req: Request, res: Response) => {
+  try {
+    const { preId, roadmapId }: ArchivedRoadmapRequest = req.body;
+    const lucid = await initializeLucid();
+    // 1. Initialize wallet and scripts
+    const RefiScript: Script = {
+      type: "PlutusV2",
+      script: process.env.CBOR!,
+    };
+    const RefiAddress = lucid.utils.validatorToAddress(RefiScript);
+    const adminSeed = process.env.ADMIN_SEED!;
+    lucid.selectWalletFromSeed(adminSeed);
+    const adminAddress = process.env.ADMIN_WALLET_ADDRESS!;
+    const plastikAssetId = process.env.PLASTIK!;
+    // 2. Find matching UTXO
+    const utxos = await lucid.utxosAt(RefiAddress);
+    const matchedUtxo = utxos.find((utxo) => {
+      if (!utxo.datum) return false;
+      const datum = Data.from(utxo.datum) as Constr<Data>;
+      return (
+        toText(datum.fields[0] as string) === preId &&
+        toText(datum.fields[1] as string) === roadmapId
+      );
+    });
+
+    if (!matchedUtxo) {
+      res.status(404).json({ error: "Roadmap UTXO not found" });
+      return;
+    }
+
+    // 3. Decode and prepare updated datum
+    const oldDatum = Data.from(matchedUtxo.datum!) as Constr<Data>;
+    const prePaymentCredentail = lucid.utils.keyHashToCredential(
+      oldDatum.fields[6] as string
+    );
+    const preStakeCredential = lucid.utils.keyHashToCredential(
+      oldDatum.fields[7] as string
+    );
+    const preAddress = lucid.utils.credentialToAddress(
+      prePaymentCredentail,
+      preStakeCredential
+    );
+    const redeemer = Data.to(new Constr(2, []));
+    const plastikToLock = ((oldDatum.fields[11] as bigint) * 4n) / 5n;
+    let asset: Assets;
+    if (plastikToLock > 0) {
+      asset = {
+        lovelace: 3_000_000n,
+        [plastikAssetId]: plastikToLock,
+      };
+    } else {
+      asset = {
+        lovelace: 3_000_000n,
+      };
+    }
+    //4 . Send utxo asset to admin address
+    const tx = await lucid
+      .newTx()
+      .collectFrom([matchedUtxo], redeemer)
+      .addSigner(adminAddress)
+      .attachSpendingValidator(RefiScript)
+      .payToAddress(adminAddress, asset)
+      .complete();
+
+    const signedTx = await tx.sign().complete();
+    const txHash = await signedTx.submit();
+    // 5. Save the Roadmap to CompletedRoadmap table
+    const archived_roadmap = {
+      preId: toText(oldDatum.fields[0] as string),
+      roadmapId: toText(oldDatum.fields[1] as string),
+      roadmapName: toText(oldDatum.fields[2] as string),
+      roadmapDescription: toText(oldDatum.fields[3] as string),
+      progress: Number(oldDatum.fields[4] as bigint) / 100,
+      preAddress: preAddress,
+      totalPlasticCredits: Number(oldDatum.fields[8] as bigint),
+      soldPlasticCredits: Number(oldDatum.fields[9] as bigint),
+      totalPlasticTokens: Number(oldDatum.fields[10] as bigint),
+      sentPlasticTokens: Number(oldDatum.fields[11] as bigint),
+      totalPlastic: Number(oldDatum.fields[12] as bigint),
+      recoveredPlastic: Number(oldDatum.fields[13] as bigint),
+      createdAt: toText(oldDatum.fields[14] as string),
+    };
+    await ArchivedRoadmap.create(archived_roadmap);
+
+    res.status(201).json({
+      message: "Roadmap Archived successfully",
+      success: true,
+      txHash: txHash,
+    });
+  } catch (error) {
+    console.error("Error archiving roadmap:", error);
+    res.status(500).json({
+      message: "An error occurred while archiving roadmap",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+const restoreRoadmap = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    const lucid = await initializeLucid();
+    // 1. Initialize wallet and scripts
+    const RefiScript: Script = {
+      type: "PlutusV2",
+      script: process.env.CBOR!,
+    };
+    const RefiAddress = lucid.utils.validatorToAddress(RefiScript);
+    const adminSeed = process.env.ADMIN_SEED!;
+    lucid.selectWalletFromSeed(adminSeed);
+    const adminAddress = process.env.ADMIN_WALLET_ADDRESS!;
+
+    // 2. Find the Archived Roadmap by id
+    const archived_Roadmap = await ArchivedRoadmap.findOne({
+      where: { id },
+    });
+
+    if (!archived_Roadmap) {
+      res.status(404).json({ error: "Archived roadmap not found" });
+      return;
+    }
+
+    // 3. Decode and prepare updated datum
+    const { paymentCredential, stakeCredential } =
+      lucid.utils.getAddressDetails(archived_Roadmap.dataValues.preAddress);
+    if (!paymentCredential?.hash || !stakeCredential?.hash) {
+      throw new Error(
+        "Failed to parse payment or stake credential from address"
+      );
+    }
+
+    const adminPkh = process.env.ADMIN_PKH!;
+    const datumToLock = new Constr(0, [
+      fromText(archived_Roadmap.dataValues.preId),
+      fromText(archived_Roadmap.dataValues.roadmapId),
+      fromText(archived_Roadmap.dataValues.roadmapName),
+      fromText(archived_Roadmap.dataValues.roadmapDescription),
+      BigInt(archived_Roadmap.dataValues.progress) * 100n,
+      adminPkh,
+      paymentCredential.hash,
+      stakeCredential.hash,
+      BigInt(archived_Roadmap.dataValues.totalPlasticCredits),
+      BigInt(archived_Roadmap.dataValues.soldPlasticCredits),
+      BigInt(archived_Roadmap.dataValues.totalPlasticTokens),
+      BigInt(archived_Roadmap.dataValues.sentPlasticTokens),
+      BigInt(archived_Roadmap.dataValues.totalPlastic),
+      BigInt(archived_Roadmap.dataValues.recoveredPlastic),
+      fromText(archived_Roadmap.dataValues.createdAt.toISOString()),
+    ]);
+
+    const plastikAssetId = process.env.PLASTIK!;
+    const plastikToLock = BigInt(
+      archived_Roadmap.dataValues.sentPlasticTokens * 0.8
+    );
+    let asset: Assets;
+    if (plastikToLock > 0) {
+      asset = {
+        lovelace: 3_000_000n,
+        [plastikAssetId]: plastikToLock,
+      };
+    } else {
+      asset = {
+        lovelace: 3_000_000n,
+      };
+    }
+
+    //4 . lock utxo asset to smart contract
+    const tx = await lucid
+      .newTx()
+      .payToContract(
+        RefiAddress,
+        {
+          inline: Data.to(datumToLock),
+        },
+        asset
+      )
+      .complete();
+    const signedTx = await tx.sign().complete();
+    const txHash = await signedTx.submit();
+
+    // 5. After successful transaction remove archived roadmap from DB
+    await ArchivedRoadmap.destroy({ where: { id } });
+
+    res.status(201).json({
+      message: "Roadmap restored successfully",
+      success: true,
+      txHash: txHash,
+    });
+  } catch (error) {
+    console.error("Error restoring roadmap:", error);
+    res.status(500).json({
+      message: "An error occurred while restoring roadmap",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+const getAllArchivedRoadmaps = async (req: Request, res: Response) => {
+  try {
+    const archived_roadmaps = await ArchivedRoadmap.findAll();
+    res.status(200).json({
+      archived_roadmaps,
+      message: "All archived roadmaps fetched successfully",
+    });
+  } catch (error) {
+    console.error("Error getting all archived roadmaps:", error);
+    res.status(500).json({
+      message: "An error occurred while getting all archived roadmaps",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+const deleteArchivedRoadmap = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id;
+    const archived_roadmap = await ArchivedRoadmap.findOne({ where: { id } });
+
+    if (!archived_roadmap) {
+      res.status(404).json({ error: "Archived roadmap not found" });
+      return;
+    }
+
+    await archived_roadmap.destroy();
+    res.status(200).json({
+      message: "Archived roadmap deleted successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error deleting archived roadmap:", error);
+    res.status(500).json({
+      message: "An error occurred while deleting archived roadmap",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
 export {
   initializeRoadmap,
   updateRoadmap,
@@ -665,4 +916,8 @@ export {
   queryAddressHistory,
   getAllCompletedRoadmaps,
   initializeLucid,
+  archivedRoadmap,
+  getAllArchivedRoadmaps,
+  restoreRoadmap,
+  deleteArchivedRoadmap,
 };

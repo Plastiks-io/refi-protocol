@@ -13,7 +13,7 @@ const RoadmapCard: React.FC<Roadmap> = ({
   recoveredPlastic,
 }) => {
   return (
-    <div className="bg-white p-4 sm:p-6 text-black rounded-lg shadow-md mb-4 w-full">
+    <div className="bg-white p-4 sm:p-6 text-black rounded-3xl mb-4 w-full border border-[#D4D9D8]">
       {/* Title Section */}
       <div className="mt-2 sm:mt-4 flex flex-wrap justify-between items-center">
         <div className="w-full sm:w-auto">
@@ -44,7 +44,7 @@ const RoadmapCard: React.FC<Roadmap> = ({
           role="progressbar"
         >
           <div
-            className="bg-black h-2 rounded-full"
+            className="bg-[#082FB9] h-2 rounded-full"
             style={{ width: `${progress}%` }}
           ></div>
         </div>
@@ -60,10 +60,13 @@ const RoadmapCard: React.FC<Roadmap> = ({
             Money in custody: ${soldPlasticCredits}/{totalPlasticCredits}
           </p>
           <p>
-            PLASTIK Tokens: {sentPlasticTokens}/{totalPlasticTokens}
+            PLASTIK Tokens Transacted: {sentPlasticTokens}/{totalPlasticTokens}
           </p>
         </div>
-        <Button variant="outline" className="w-full sm:w-auto">
+        <Button
+          variant="userButton"
+          className="bg-[#0D0D0D] text-white rounded-full font-semibold"
+        >
           View Details
         </Button>
       </div>

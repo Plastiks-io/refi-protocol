@@ -8,12 +8,10 @@ interface Props {
 }
 
 const PrivateAdminRoute = ({ children }: Props) => {
-  const walletAddress = useSelector(
-    (state: RootState) => state.wallet.walletAddress
-  );
-  const adminAddress = import.meta.env.VITE_ADMIN_WALLET_ADDRESS?.toLowerCase();
+  const role = useSelector((state: RootState) => state.auth.role);
 
-  if (walletAddress?.toLowerCase() !== adminAddress) {
+  const isAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
+  if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
 

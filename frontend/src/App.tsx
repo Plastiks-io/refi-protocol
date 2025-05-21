@@ -18,16 +18,14 @@ import { BrowserWallet } from "@meshsdk/core";
 import { RootState } from "./redux/store";
 import { fetchRoadmaps } from "./redux/roadmapSlice";
 import { fetchCompletedRoadmaps } from "./redux/completedRoadmapSlice";
-import RoadmapDetails from "./components/admin/RoadmapDetails";
+import { fetchArchivedRoadmaps } from "./redux/archivedRoadmapSlice";
 import {
   FetchParams,
   fetchTransactions,
   setPagination,
 } from "./redux/TransactionSlice";
-
-// useEffect(() => {
-
-// }, []);
+import Settings from "./components/admin/Setting";
+import { fetchAdmins } from "./redux/adminSlice";
 
 export const WalletContext = React.createContext<BrowserWallet | null>(null);
 
@@ -77,6 +75,8 @@ function App() {
     reconnectWallet();
     dispatch(fetchRoadmaps());
     dispatch(fetchCompletedRoadmaps());
+    dispatch(fetchArchivedRoadmaps());
+    dispatch(fetchAdmins());
   }, [walletId, dispatch]);
 
   useEffect(() => {
@@ -125,11 +125,15 @@ function App() {
                   </PrivateAdminRoute>
                 }
               />
-              <Route path="/buy-nft" element={<NFTPurchase />} />
               <Route
-                path="admin/roadmap/:roadmapId"
-                element={<RoadmapDetails />}
+                path="admin/settings"
+                element={
+                  <PrivateAdminRoute>
+                    <Settings />
+                  </PrivateAdminRoute>
+                }
               />
+              <Route path="/buy-nft" element={<NFTPurchase />} />
             </Routes>
           </main>
 

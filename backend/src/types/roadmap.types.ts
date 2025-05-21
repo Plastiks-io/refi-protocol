@@ -42,3 +42,8 @@ export type QueryTransaction = {
   txHash: string;
   outputIndex: number;
 };
+
+export type ArchivedRoadmapRequest = {
+  preId: string;
+  roadmapId: string;
+};

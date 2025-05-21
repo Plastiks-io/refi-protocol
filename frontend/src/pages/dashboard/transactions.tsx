@@ -1,22 +1,11 @@
 import DynamicTable from "../../components/Table";
 import StatsCard from "../../components/StatsCard";
-import { faFire, faLeaf } from "@fortawesome/free-solid-svg-icons";
+// import { faFire, faLeaf } from "@fortawesome/free-solid-svg-icons";
+import { Recycle, CoinsSwap } from "@/assets/icons";
 import { Loader } from "lucide-react";
-
-const stats = [
-  {
-    title: "Total Tokens Retired",
-    value: "234,567",
-    description: "+2.5% from last month",
-    icon: faFire,
-  },
-  {
-    title: "Plastic Recovered",
-    value: "45,678 kg",
-    description: "Equivalent to x amount of bottles",
-    icon: faLeaf,
-  },
-];
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import { useMemo } from "react";
 
 const Transactions = ({
   transactions,
@@ -26,9 +15,56 @@ const Transactions = ({
   count,
   onPageChange,
 }: any) => {
+  // selectors for active, completed, archived
+  const { roadmaps: activeRoadmaps } = useSelector(
+    (state: RootState) => state.roadmaps
+  );
+  const { roadmaps: completedRoadmaps } = useSelector(
+    (state: RootState) => state.completedRoadmaps
+  );
+  const { roadmaps: archivedRoadmaps } = useSelector(
+    (state: RootState) => state.archivedRoadmaps
+  );
+
+  const combinedRoadmaps = useMemo(
+    () => [...activeRoadmaps, ...completedRoadmaps, ...archivedRoadmaps],
+    [activeRoadmaps, completedRoadmaps, archivedRoadmaps]
+  );
+  const totalRecoveredKg = useMemo(
+    () =>
+      combinedRoadmaps.reduce((sum, r) => sum + (r.recoveredPlastic || 0), 0),
+    [combinedRoadmaps]
+  );
+
+  // plastik token retired = sold p.c * 100 * 2%
+  const totalTokensRetired = useMemo(
+    () =>
+      completedRoadmaps.reduce(
+        (sum, r) => sum + (r.soldPlasticCredits || 0) * 2,
+        0
+      ),
+    [completedRoadmaps]
+  );
+
+  const stats = [
+    {
+      title: "Total Tokens Retired",
+      value: totalTokensRetired.toString(),
+      description: "Plastik",
+      icon: CoinsSwap,
+    },
+    // 1 bottle = 18 gm so 1 kg = 56 bottles
+    {
+      title: "Plastic Recovered",
+      value: `${totalRecoveredKg.toLocaleString()} kg`,
+      description: `Equivalent to ${totalRecoveredKg * 56} amount of bottles`,
+      icon: Recycle,
+    },
+  ];
+
   return (
     <div className="bg-white text-gray-500 mx-auto px-4 md:px-10 lg:px-20 py-6 min-h-[calc(80vh)]">
-      <section className="relative flex flex-wrap justify-center gap-6 py-8 px-4">
+      <section className="relative flex flex-wrap gap-2 justify-around py-8 px-4 mb-4">
         {stats.map((stat, index) => (
           <StatsCard
             key={index}
@@ -36,16 +72,17 @@ const Transactions = ({
             value={stat.value}
             description={stat.description}
             icon={stat.icon}
-            width="2/5"
+            width="12/25"
           />
         ))}
       </section>
 
-      <h2 className="text-xl font-semibold text-gray-700">Transactions</h2>
-      <p className="text-gray-500 mb-4">
-        Below is a detailed list of transactions history showcasing the fees,
-        amounts, and associated plastic credits. This data highlights the impact
-        and transparency of our plastic recovery initiatives.
+      <h2 className="text-2xl font-semibold text-[#0D0D0D]">
+        Plastic Credit Transactions
+      </h2>
+      <p className="text-[#0D0D0D] mb-4">
+        This table displays all verified plastic credit sales processed via the
+        ReFi DApp.
       </p>
 
       {loading ? (

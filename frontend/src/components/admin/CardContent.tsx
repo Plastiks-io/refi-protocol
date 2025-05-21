@@ -14,13 +14,13 @@ export default function CardContent({
 }: CardContentProps) {
   return (
     <div className="text-center py-4">
-      <p className="text-gray-600 text-sm font-medium mb-1">{title}</p>
-      <p className="text-xl font-bold text-black">{value}</p>
+      <p className="text-gray-800 text-lg mb-1">{title}</p>
+      <p className="text-3xl font-bold text-black">{value}</p>
       {subtitle && <p className="text-sm text-gray-400">{subtitle}</p>}
       {progress !== undefined && (
         <div className="mt-2 bg-gray-200 rounded-full">
           <div
-            className="bg-black h-2 rounded"
+            className="bg-[#082FB9] h-2 rounded"
             style={{ width: `${progress}%` }}
             role="presentation"
           ></div>

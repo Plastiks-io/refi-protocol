@@ -3,6 +3,8 @@ import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+import path from "path";
+import wasm from "vite-plugin-wasm";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -14,7 +16,13 @@ export default defineConfig({
         Buffer: true, // Enables Buffer polyfill
       },
     }),
+    wasm(),
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+    },
+  },
   server: {
     port: 3000,
     open: true,

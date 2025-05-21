@@ -1,4 +1,4 @@
-le#!/bin/bash
+#!/bin/bash
 
 # Enhanced script to generate a Cardano script address
 

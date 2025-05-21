@@ -61,6 +61,7 @@ defaultDatum = Validator.PlastiksDatum
   , Validator.sentPlasticTokens = 1000
   , Validator.totalPlastic = 10000
   , Validator.recoverPlastic = 5000
+  , Validator.createdAt = "05-13-2025"
   }
 
 -- Updated test cases with scaled values
@@ -120,4 +121,21 @@ tests = testGroup "Plastiks Validator Tests"
           assertBool "Should prevent early release" $
             not (Validator.validate datum redeemer ctx)
       ]
+
+    , testGroup "Archived Redeemer"
+        [ testCase "Archived without admin signature" $ do
+            let datum = defaultDatum
+                redeemer = Validator.Archived
+                ctx = mkContext testAdmin False
+            assertBool "Should prevent unauthorized archived" $
+                not (Validator.validate datum redeemer ctx)
+
+        , testCase "Archived with admin signature" $ do
+            let datum = defaultDatum 
+                redeemer = Validator.Archived
+                ctx = mkContext testAdmin True
+            assertBool "Should Archived roadmap" $
+                Validator.validate datum redeemer ctx
+        ]
+
   ]

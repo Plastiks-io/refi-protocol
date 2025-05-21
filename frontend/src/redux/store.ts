@@ -2,8 +2,11 @@ import { configureStore } from "@reduxjs/toolkit";
 import walletReducer from "./walletSlice";
 import roadmapReducer from "./roadmapSlice";
 import completedRoadmapReducer from "./completedRoadmapSlice";
+import archivedRoadmapReducer from "./archivedRoadmapSlice";
 import TransactionsReducer from "./TransactionSlice";
-import storageSession from "redux-persist/lib/storage/session"; // Uses sessionStorage
+import AuthReducer from "./authSlice";
+import AdminReducer from "./adminSlice";
+import storageSession from "redux-persist/lib/storage/session";
 import { persistReducer, persistStore, PersistConfig } from "redux-persist";
 
 // Define persist configuration with types
@@ -13,14 +16,25 @@ const persistConfig: PersistConfig<ReturnType<typeof walletReducer>> = {
   whitelist: ["walletId", "walletAddress"], // Persist only necessary fields
 };
 
+// Persist config for auth
+const authPersistConfig: PersistConfig<ReturnType<typeof AuthReducer>> = {
+  key: "auth",
+  storage: storageSession,
+  whitelist: ["email", "role", "isAuthenticated"],
+};
+
 const persistedWalletReducer = persistReducer(persistConfig, walletReducer);
+const persistedAuthReducer = persistReducer(authPersistConfig, AuthReducer);
 
 export const store = configureStore({
   reducer: {
     wallet: persistedWalletReducer,
     roadmaps: roadmapReducer,
     completedRoadmaps: completedRoadmapReducer,
+    archivedRoadmaps: archivedRoadmapReducer,
     transactions: TransactionsReducer,
+    auth: persistedAuthReducer,
+    admin: AdminReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -15,6 +15,7 @@ export interface CompletedRoadmap {
   sentPlasticTokens: number;
   totalPlastic: number;
   recoveredPlastic: number;
+  createdAt: string;
 }
 
 // Async thunk to fetch roadmaps

@@ -18,11 +18,11 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <button
       className={cn(
-        "space-x-2 flex items-center justify-center px-4 py-2 transition cursor-pointer",
+        "space-x-2 flex items-center justify-center px-6 py-2 transition cursor-pointer",
         variant === "default" &&
           "bg-gray-800 text-white hover:bg-gray-600 rounded-lg",
         variant === "outline" &&
-          "flex items-center justify-center bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-lg",
+          "flex items-center justify-center bg-white border border-[#0D0D0D] text-[#0D0D0D] px-4 py-2 rounded-full",
         variant === "dark" &&
           "bg-gray-900 text-white hover:bg-gray-700 font-semibold rounded-lg",
         variant === "gray" &&

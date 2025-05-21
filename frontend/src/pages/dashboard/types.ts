@@ -4,6 +4,8 @@ export interface Roadmap {
   roadmapName: string;
   roadmapDescription: string;
   progress: number;
+  prePkh?: string;
+  preSkh?: string;
   preAddress?: string;
   totalPlasticCredits: number;
   soldPlasticCredits: number;
@@ -11,4 +13,6 @@ export interface Roadmap {
   sentPlasticTokens: number;
   totalPlastic: number;
   recoveredPlastic: number;
+  createdAt: string;
+  completed?: boolean;
 }

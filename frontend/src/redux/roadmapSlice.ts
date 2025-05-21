@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
 
 // Define the roadmap type (optional if using JS)
@@ -17,6 +17,7 @@ export interface Roadmap {
   sentPlasticTokens: number;
   totalPlastic: number;
   recoveredPlastic: number;
+  createdAt: string;
 }
 
 // Async thunk to fetch roadmaps
@@ -44,7 +45,11 @@ const roadmapSlice = createSlice({
     loading: false,
     error: null as string | null,
   },
-  reducers: {},
+  reducers: {
+    addRoadmap: (state, action: PayloadAction<Roadmap>) => {
+      state.roadmaps.push(action.payload);
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchRoadmaps.pending, (state) => {
@@ -62,4 +67,5 @@ const roadmapSlice = createSlice({
   },
 });
 
+export const { addRoadmap } = roadmapSlice.actions;
 export default roadmapSlice.reducer;

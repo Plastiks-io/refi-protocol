@@ -37,11 +37,12 @@ data PlastiksDatum = PlastiksDatum
     , sentPlasticTokens :: Integer
     , totalPlastic::Integer
     , recoverPlastic::Integer
+    , createdAt:: BuiltinByteString
     }  deriving stock Show
 
 PlutusTx.unstableMakeIsData ''PlastiksDatum
 
-data PlastiksRedeemer = UpdateProgress Integer | Release
+data PlastiksRedeemer = UpdateProgress Integer | Release | Archived
     deriving stock Show
 
 PlutusTx.unstableMakeIsData ''PlastiksRedeemer
@@ -61,6 +62,10 @@ validate datum redeemer ctx =
         Release ->
             traceIfFalse "Admin not signed" (txSignedBy info (adminPkh datum)) &&
             traceIfFalse "Progress not complete" (progress datum == 10000)  -- Must reach 100.00%
+
+        Archived ->
+            traceIfFalse "Admin not signed" (txSignedBy info (adminPkh datum))
+            
     where
         info = scriptContextTxInfo ctx
 

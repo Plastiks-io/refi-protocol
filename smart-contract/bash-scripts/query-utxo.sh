@@ -9,7 +9,7 @@ address=$(< $1)
 # Display the address being queried
 echo "Fetching UTXOs for address: $address"
 
-# Display UTXO Normally
+# # Display UTXO Normally
 cardano-cli query utxo --address "$address" --testnet-magic 1
 
 

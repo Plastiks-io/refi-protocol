@@ -1,4 +1,5 @@
 import React from "react";
+import { X } from "lucide-react";
 
 type Wallet = {
   icon: string;
@@ -15,34 +16,34 @@ type PopupProps = {
 
 const Popup: React.FC<PopupProps> = ({ wallets, onSelectWallet, onClose }) => {
   return (
-    <div className="fixed inset-0 bg-[rgba(0,0,0,0.7)] flex justify-center items-center z-50">
-      <div className="bg-white text-gray-700 rounded-lg shadow-lg p-6 w-96">
-        <h2 className="text-xl font-bold mb-6 text-center">Select a Wallet</h2>
-        <div className="flex flex-col gap-6">
+    <div className="fixed inset-0 bg-[rgba(0,0,0,0.5)] flex justify-center items-center z-50 md:justify-end md:items-start">
+      <div className="bg-white text-gray-700 rounded-2xl shadow-lg p-6 w-full max-w-md mx-4 my-8 md:mx-0 md:my-0 md:w-96 md:mt-30 md:mr-20">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold mb-6">Connect Wallet</h2>
+          <X
+            onClick={onClose}
+            color="#364153"
+            strokeWidth={1.5}
+            size={24}
+            className="cursor-pointer"
+          />
+        </div>
+        <div className="flex flex-col gap-3">
           {wallets.map((wallet) => (
             <div
               key={wallet.id}
-              className="flex items-center gap-4 p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              className="flex items-center gap-4 p-2 rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-[#D7C1B3]"
               onClick={() => onSelectWallet(wallet.id)}
             >
               <img
                 src={wallet.icon}
                 alt={wallet.name}
-                className="w-12 h-12 rounded-full object-cover"
+                className="w-10 h-10 rounded-full object-cover"
               />
-              <div>
-                <p className="font-semibold text-lg">{wallet.name}</p>
-                <p className="text-sm text-gray-500">v{wallet.version}</p>
-              </div>
+              <p className="font-semibold text-lg">{wallet.name}</p>
             </div>
           ))}
         </div>
-        <button
-          className="mt-6 w-full bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors"
-          onClick={onClose}
-        >
-          Close
-        </button>
       </div>
     </div>
   );
