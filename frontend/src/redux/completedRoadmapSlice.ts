@@ -1,23 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import { Roadmap } from "./roadmapSlice";
 
-// Define the roadmap type (optional if using JS)
-export interface CompletedRoadmap {
-  preId: string;
-  roadmapId: string;
-  roadmapName: string;
-  roadmapDescription: string;
-  progress: number;
-  preAddress: string;
-  totalPlasticCredits: number;
-  soldPlasticCredits: number;
-  totalPlasticTokens: number;
-  sentPlasticTokens: number;
-  totalPlastic: number;
-  recoveredPlastic: number;
-  createdAt: string;
+// extend roadmap because it has one more field called id
+interface CompletedRoadmap extends Roadmap {
+  id: string;
 }
-
 // Async thunk to fetch roadmaps
 export const fetchCompletedRoadmaps = createAsyncThunk<CompletedRoadmap[]>(
   "roadmaps/fetchCompletedRoadmaps",

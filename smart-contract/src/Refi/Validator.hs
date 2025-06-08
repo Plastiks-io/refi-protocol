@@ -28,7 +28,7 @@ data PlastiksDatum = PlastiksDatum
     , roadmapName :: BuiltinByteString       
     , roadmapDescription :: BuiltinByteString
     , progress :: Integer
-    , adminPkh :: PubKeyHash
+    , adminsPkh :: [PubKeyHash]
     , prePkh :: PubKeyHash
     , preSkh :: PubKeyHash 
     , totalPlasticCredits :: Integer
@@ -42,10 +42,25 @@ data PlastiksDatum = PlastiksDatum
 
 PlutusTx.unstableMakeIsData ''PlastiksDatum
 
-data PlastiksRedeemer = UpdateProgress Integer | Release | Archived
+data PlastiksRedeemer 
+    = UpdateProgress Integer
+    | Release 
+    | Archived 
+    | FundUSDM
     deriving stock Show
 
 PlutusTx.unstableMakeIsData ''PlastiksRedeemer
+
+-------------------------------------------------
+-- Helper Functions
+-------------------------------------------------
+
+{-# INLINABLE isSignedByAnyAdmin #-}
+isSignedByAnyAdmin :: TxInfo -> [PubKeyHash] -> Bool
+isSignedByAnyAdmin _ [] = False
+isSignedByAnyAdmin info (pkh:rest) = 
+    txSignedBy info pkh || isSignedByAnyAdmin info rest
+    
 
 -------------------------------------------------
 -- Validator Logic
@@ -56,15 +71,18 @@ validate :: PlastiksDatum -> PlastiksRedeemer -> ScriptContext -> Bool
 validate datum redeemer ctx =
     case redeemer of
         UpdateProgress newProgress ->
-            traceIfFalse "Admin not signed" (txSignedBy info (adminPkh datum)) &&
+            traceIfFalse "No admin signed tx" (isSignedByAnyAdmin info (adminsPkh datum)) &&
             traceIfFalse "Invalid progress update" (newProgress > progress datum && newProgress <= 10000)  -- Scaled to 100.00%
 
         Release ->
-            traceIfFalse "Admin not signed" (txSignedBy info (adminPkh datum)) &&
-            traceIfFalse "Progress not complete" (progress datum == 10000)  -- Must reach 100.00%
+            traceIfFalse "No admin signed tx" (isSignedByAnyAdmin info (adminsPkh datum)) &&
+            traceIfFalse "Progress is not completed" (progress datum == 10000)  -- Must reach 100.00%
 
         Archived ->
-            traceIfFalse "Admin not signed" (txSignedBy info (adminPkh datum))
+            traceIfFalse "No admin signed tx" (isSignedByAnyAdmin info (adminsPkh datum))
+
+        FundUSDM ->
+            traceIfFalse "No admin signed tx" (isSignedByAnyAdmin info (adminsPkh datum))
             
     where
         info = scriptContextTxInfo ctx

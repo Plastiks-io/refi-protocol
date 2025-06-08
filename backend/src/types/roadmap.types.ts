@@ -1,18 +1,18 @@
 export type ProjectDatum = {
-  preId: string; // decode string
-  roadmapId: string; // decode string
-  roadmapName: string; // decode string
-  roadmapDescription: string; // decode string
+  preId: string;
+  roadmapId: string;
+  roadmapName: string;
+  roadmapDescription: string;
   progress: number;
-  prePkh: string;
-  adminPkh: string;
+  preAddress: string;
   totalPlasticCredits: number;
   soldPlasticCredits: number;
   totalPlasticTokens: number;
   sentPlasticTokens: number;
   totalPlastic: number;
   recoveredPlastic: number;
-  txHash?: string;
+  createdAt: string;
+  status: string;
 };
 
 export type InitializeRoadmapRequest = {

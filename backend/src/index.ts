@@ -10,6 +10,7 @@ import roadmapRoutes from "./routes/roadmap.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import adminsRouter from "./routes/admin.routes.js";
 import authRouter from "./routes/auth.routes.js";
+import transactionRoutes from "./routes/transaction.routes.js";
 
 dotenv.config();
 
@@ -52,6 +53,9 @@ async function bootstrap() {
   app.use("/admin", adminsRouter);
   // auth routes:
   app.use("/auth", authRouter);
+
+  // transaction routes:
+  app.use("/transaction", transactionRoutes);
 
   app.listen(PORT, () =>
     console.log(`Server running on http://localhost:${PORT}`)

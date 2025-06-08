@@ -7,7 +7,7 @@ fi
 WALLET=$1
 source getTxFunc.sh
 # Configuration
-AMOUNT=1280070                   # Amount in Lovelace (1 ADA)
+AMOUNT=2000000                   # Amount in Lovelace (2 ADA)
 SENDER_ADDRESS=$(cat $WALLET/payment.addr)         # Your wallet address
 echo "Sender Address: $SENDER_ADDRESS"
 SENDER_SKEY="$WALLET/payment.skey"        # Your payment signing key
@@ -27,7 +27,7 @@ if [[ ! -f "$SCRIPT_ADDRESS_FILE" ]]; then
 fi
 SCRIPT_ADDRESS=$(cat $SCRIPT_ADDRESS_FILE) # Script address
 echo "Script Address: $SCRIPT_ADDRESS"
-echo "Enter the refi datum file path:"
+echo "Enter the datum file path:"
 read -r DATUM_FILE
 # Validate if the escrow datum file exists
 if [[ ! -f "$DATUM_FILE" ]]; then

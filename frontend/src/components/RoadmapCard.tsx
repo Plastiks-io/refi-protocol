@@ -1,5 +1,5 @@
+import { Roadmap } from "@/redux/roadmapSlice";
 import Button from "./Button";
-import { Roadmap } from "../pages/dashboard/types";
 
 const RoadmapCard: React.FC<Roadmap> = ({
   roadmapName,

@@ -107,7 +107,7 @@ const HeroSection = () => {
 
   return (
     <div>
-      <div className=" bg-[linear-gradient(to_right,_#082FB9_0%,_#0D0D0D_25%,_#0D0D0D_75%,_#082FB9_100%)] md:min-h-[500px] flex justify-center items-center">
+      <div className="bg-[linear-gradient(to_right,_#082FB9_0%,_#0D0D0D_25%,_#0D0D0D_75%,_#082FB9_100%)] md:min-h-[500px] flex justify-center items-center">
         {/* Hero Section */}
         <section className="text-white text-center py-12 px-4">
           <div className="max-w-2xl mx-auto">

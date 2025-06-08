@@ -65,6 +65,11 @@ CompletedRoadmap.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "completed",
+    },
   },
   {
     sequelize,

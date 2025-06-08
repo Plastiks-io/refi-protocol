@@ -1,5 +1,6 @@
 import { Blockfrost, C, Lucid } from "lucid-cardano";
 import { Request, Response } from "express";
+import { Transaction, TransactionType } from "../models/transaction.model.js";
 import { config } from "dotenv";
 config();
 
@@ -30,6 +31,7 @@ const sentPC = async (req: Request, res: Response) => {
     // console.log(amount);
 
     const pcAssetId = process.env.PC_ASSET_ID!;
+    const usdmAssetId = process.env.USDM!;
 
     // send minLovelace along with PC token
     const tx = await lucid
@@ -39,8 +41,20 @@ const sentPC = async (req: Request, res: Response) => {
       })
       .complete();
 
+    const txFee = tx.fee;
+    console.log(txFee);
     const signedTx = await tx.sign().complete();
     const txHash = await signedTx.submit();
+
+    // Create a new transaction in the database
+    await Transaction.create({
+      txDate: new Date(),
+      txFee: txFee,
+      amount,
+      assetId: pcAssetId,
+      hash: txHash,
+      type: TransactionType.Sold,
+    });
     res.status(200).json({
       message: "Transaction successful",
       txHash,

@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import PrivateAdminRoute from "./components/PrivateAdminRoute";
 import Admin from "./pages/dashboard/admin";
 import NFTPurchase from "./pages/user/nft";
+import RoadmapDetails from "./components/admin/RoadmapDetails";
 
 // App.tsx or WalletProvider.tsx
 import React, { useEffect, useState } from "react";
@@ -19,22 +20,18 @@ import { RootState } from "./redux/store";
 import { fetchRoadmaps } from "./redux/roadmapSlice";
 import { fetchCompletedRoadmaps } from "./redux/completedRoadmapSlice";
 import { fetchArchivedRoadmaps } from "./redux/archivedRoadmapSlice";
-import {
-  FetchParams,
-  fetchTransactions,
-  setPagination,
-} from "./redux/TransactionSlice";
+import { fetchTransactions } from "./redux/TransactionSlice";
 import Settings from "./components/admin/Setting";
 import { fetchAdmins } from "./redux/adminSlice";
+import Lend from "@/pages/dashboard/lend";
+import PrivateLendRoute from "./components/PrivateLendRoute";
 
 export const WalletContext = React.createContext<BrowserWallet | null>(null);
 
 function App() {
-  const { walletId, walletAddress } = useSelector(
-    (state: RootState) => state.wallet
-  );
+  const { walletId } = useSelector((state: RootState) => state.wallet);
 
-  const { transactions, page, count, order, loading, error } = useSelector(
+  const { transactions, loading, error } = useSelector(
     (state: RootState) => state.transactions
   );
 
@@ -43,7 +40,7 @@ function App() {
     // Update pagination in the Redux store
     console.log(newPage);
 
-    dispatch(setPagination({ page: newPage }));
+    // dispatch(setPagination({ page: newPage }));
   };
 
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
@@ -77,19 +74,8 @@ function App() {
     dispatch(fetchCompletedRoadmaps());
     dispatch(fetchArchivedRoadmaps());
     dispatch(fetchAdmins());
+    dispatch(fetchTransactions());
   }, [walletId, dispatch]);
-
-  useEffect(() => {
-    if (walletAddress) {
-      const params: FetchParams = {
-        address: walletAddress,
-        page,
-        count,
-        order,
-      };
-      dispatch(fetchTransactions(params));
-    }
-  }, [walletAddress, page, count, order, dispatch]);
 
   return (
     <WalletContext.Provider value={wallet}>
@@ -110,8 +96,6 @@ function App() {
                     transactions={transactions}
                     loading={loading}
                     error={error}
-                    page={page}
-                    count={count}
                     onPageChange={handlePageChange}
                   />
                 }
@@ -126,14 +110,31 @@ function App() {
                 }
               />
               <Route
-                path="admin/settings"
+                path="/admin/settings"
                 element={
                   <PrivateAdminRoute>
                     <Settings />
                   </PrivateAdminRoute>
                 }
               />
+              <Route
+                path="/admin/:roadmapId"
+                element={
+                  <PrivateAdminRoute>
+                    <RoadmapDetails />
+                  </PrivateAdminRoute>
+                }
+              />
               <Route path="/buy-nft" element={<NFTPurchase />} />
+
+              <Route
+                path="/lend"
+                element={
+                  <PrivateLendRoute>
+                    <Lend />
+                  </PrivateLendRoute>
+                }
+              />
             </Routes>
           </main>
 

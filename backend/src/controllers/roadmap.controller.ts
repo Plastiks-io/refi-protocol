@@ -293,7 +293,10 @@ const updateRoadmap = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const getAllRoadmaps = async (req: Request, res: Response): Promise<void> => {
+const getAllActiveRoadmaps = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const lucid = await initializeLucid();
     const cbor = process.env.CBOR!;
@@ -318,15 +321,24 @@ const getAllRoadmaps = async (req: Request, res: Response): Promise<void> => {
         if (progress > 0) {
           progress /= 100;
         }
+        // extract address from prePkh and preSkh
+        const paymentCredential = lucid.utils.keyHashToCredential(
+          decodedDatum.fields[6] as string
+        );
+        const stakeCredential = lucid.utils.keyHashToCredential(
+          decodedDatum.fields[7] as string
+        );
+        const address = lucid.utils.credentialToAddress(
+          paymentCredential,
+          stakeCredential
+        );
         const data = {
           preId: toText(decodedDatum.fields[0] as string),
           roadmapId: toText(decodedDatum.fields[1] as string),
           roadmapName: toText(decodedDatum.fields[2] as string),
           roadmapDescription: toText(decodedDatum.fields[3] as string),
           progress: progress,
-          adminPkh: decodedDatum.fields[5] as string, // keep hex
-          prePkh: decodedDatum.fields[6] as string, // keep hex
-          preSkh: decodedDatum.fields[7] as string, // keep hex
+          preAddress: address,
           totalPlasticCredits: Number(decodedDatum.fields[8] as bigint),
           soldPlasticCredits: Number(decodedDatum.fields[9] as bigint),
           totalPlasticTokens: Number(decodedDatum.fields[10] as bigint),
@@ -334,6 +346,7 @@ const getAllRoadmaps = async (req: Request, res: Response): Promise<void> => {
           totalPlastic: Number(decodedDatum.fields[12] as bigint),
           recoveredPlastic: Number(decodedDatum.fields[13] as bigint),
           createdAt: toText(decodedDatum.fields[14] as string),
+          status: "active",
         };
         allDetails.push(data);
       })
@@ -910,7 +923,7 @@ const deleteArchivedRoadmap = async (req: Request, res: Response) => {
 export {
   initializeRoadmap,
   updateRoadmap,
-  getAllRoadmaps,
+  getAllActiveRoadmaps,
   releaseFunds,
   queryTransaction,
   queryAddressHistory,

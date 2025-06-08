@@ -1,21 +1,18 @@
 // src/components/RoadmapRow.tsx
 import React from "react";
-import { Roadmap } from "../pages/dashboard/types";
 import { TriangleAlert } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleCheck } from "@fortawesome/free-regular-svg-icons";
+import { Roadmap } from "@/redux/roadmapSlice";
+import { useNavigate } from "react-router-dom";
 
-interface RoadmapRowProps extends Roadmap {
-  onViewDetails: () => void;
-}
-
-const RoadmapRow: React.FC<RoadmapRowProps> = ({
+const RoadmapRow: React.FC<Roadmap> = ({
   preId,
+  roadmapId,
   roadmapName,
   progress,
   totalPlasticCredits,
   totalPlasticTokens,
-  onViewDetails,
 }) => {
   const date = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -24,6 +21,8 @@ const RoadmapRow: React.FC<RoadmapRowProps> = ({
   });
 
   const isPending = false; // or derive from props
+
+  const navigate = useNavigate();
 
   return (
     <tr className="border-b border-gray-200">
@@ -59,8 +58,12 @@ const RoadmapRow: React.FC<RoadmapRowProps> = ({
       </td>
       <td className="p-4">
         <button
-          onClick={onViewDetails}
           className="text-[#082FB9] border-b-2 hover:text-blue-600 transition cursor-pointer"
+          onClick={() => {
+            // Navigate to details page
+            // Example: navigate(`/roadmap/${preId}`);
+            navigate(`/admin/${roadmapId}`);
+          }}
         >
           View Details
         </button>

@@ -1,22 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
+import { Roadmap } from "./roadmapSlice";
 
 // Define the roadmap type (optional if using JS)
-export interface ArchivedRoadmap {
+interface ArchivedRoadmap extends Roadmap {
   id: string;
-  preId: string;
-  roadmapId: string;
-  roadmapName: string;
-  roadmapDescription: string;
-  progress: number;
-  preAddress: string;
-  totalPlasticCredits: number;
-  soldPlasticCredits: number;
-  totalPlasticTokens: number;
-  sentPlasticTokens: number;
-  totalPlastic: number;
-  recoveredPlastic: number;
-  createdAt: string;
   dateArchived: string;
 }
 
@@ -56,6 +44,9 @@ const archivedRoadmapSlice = createSlice({
     removeArchivedRoadmap: (state, action: PayloadAction<string>) => {
       state.roadmaps = state.roadmaps.filter((r) => r.id !== action.payload);
     },
+    addArchivedRoadmap: (state, action: PayloadAction<ArchivedRoadmap>) => {
+      state.roadmaps.push(action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -74,6 +65,6 @@ const archivedRoadmapSlice = createSlice({
   },
 });
 
-export const { resetArchivedRoadmaps, removeArchivedRoadmap } =
-archivedRoadmapSlice.actions;
+export const { resetArchivedRoadmaps, removeArchivedRoadmap, addArchivedRoadmap } =
+  archivedRoadmapSlice.actions;
 export default archivedRoadmapSlice.reducer;

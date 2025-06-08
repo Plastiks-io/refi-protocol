@@ -8,9 +8,7 @@ export interface Roadmap {
   roadmapName: string;
   roadmapDescription: string;
   progress: number;
-  adminPkh: string;
-  prePkh: string;
-  preSkh: string;
+  preAddress: string;
   totalPlasticCredits: number;
   soldPlasticCredits: number;
   totalPlasticTokens: number;
@@ -18,6 +16,7 @@ export interface Roadmap {
   totalPlastic: number;
   recoveredPlastic: number;
   createdAt: string;
+  status: string;
 }
 
 // Async thunk to fetch roadmaps
@@ -49,6 +48,11 @@ const roadmapSlice = createSlice({
     addRoadmap: (state, action: PayloadAction<Roadmap>) => {
       state.roadmaps.push(action.payload);
     },
+    removeRoadmap: (state, action: PayloadAction<string>) => {
+      state.roadmaps = state.roadmaps.filter(
+        (r) => r.roadmapId !== action.payload
+      );
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -67,5 +71,5 @@ const roadmapSlice = createSlice({
   },
 });
 
-export const { addRoadmap } = roadmapSlice.actions;
+export const { addRoadmap, removeRoadmap } = roadmapSlice.actions;
 export default roadmapSlice.reducer;

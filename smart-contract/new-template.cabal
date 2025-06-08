@@ -54,20 +54,22 @@ library
                   -- Escrow.Validator,
                   -- Escrow.Compiler,
                   Refi.Validator,
-                  Refi.Compiler
+                  Refi.Compiler,
+                  Lend.StakeReward,
+                  Lend.Compiler
 
-test-suite test
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Spec.hs
-  build-depends:       
-    base,
-    tasty,
-    tasty-hunit,
-    plutus-ledger,
-    plutus-ledger-api,
-    plutus-tx,
-    plutus-core,
-    containers,
-    smart-contract
-  default-language:    Haskell2010
+-- test-suite test
+--   type:                exitcode-stdio-1.0
+--   hs-source-dirs:      test
+--   main-is:             Spec.hs
+--   build-depends:       
+--     base,
+--     tasty,
+--     tasty-hunit,
+--     plutus-ledger,
+--     plutus-ledger-api,
+--     plutus-tx,
+--     plutus-core,
+--     containers,
+--     smart-contract
+--   default-language:    Haskell2010

@@ -1,7 +1,6 @@
 // src/pages/dashboard/admin.tsx
 import { useSelector } from "react-redux";
 import RoadmapRow from "../../components/RoadmapRow";
-import RoadmapDetails from "@/components/admin/RoadmapDetails";
 import { RootState } from "../../redux/store";
 import { AlertCircle, Loader } from "lucide-react";
 import { useState } from "react";
@@ -9,7 +8,6 @@ import { DownArrow } from "@/assets/icons";
 import CheckboxFilterList, {
   FilterOption,
 } from "@/components/CheckboxFilterList";
-import { Roadmap as RoadmapType } from "./types";
 
 const filterOptions: FilterOption[] = [
   { id: "active", label: "In Progress" },
@@ -37,11 +35,6 @@ export default function AdminPage() {
   const [showFilters, setShowFilters] = useState(false);
   const toggleFilters = () => setShowFilters((prev) => !prev);
   const [filterType, setFilterType] = useState<string>(filterOptions[0].id);
-
-  // NEW: local state for which roadmap is “selected”
-  const [selectedRoadmap, setSelectedRoadmap] = useState<RoadmapType | null>(
-    null
-  );
 
   const handleFilterChange = (selected: string[]) => {
     if (selected.length) {
@@ -94,18 +87,6 @@ export default function AdminPage() {
   };
 
   const displayedRoadmaps = getDisplayed();
-
-  // If a roadmap is selected, show its details instead of the table
-  if (selectedRoadmap) {
-    return (
-      <div className="mx-auto px-4 py-6 bg-white text-black md:px-10 lg:px-20 min-h-screen">
-        <RoadmapDetails
-          roadmap={selectedRoadmap}
-          onBack={() => setSelectedRoadmap(null)}
-        />
-      </div>
-    );
-  }
 
   // Otherwise, show the table & filters
   return (
@@ -171,11 +152,7 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {displayedRoadmaps.map((data, index) => (
-                  <RoadmapRow
-                    key={data.roadmapId}
-                    {...data}
-                    onViewDetails={() => setSelectedRoadmap(data)}
-                  />
+                  <RoadmapRow key={index} {...data} />
                 ))}
               </tbody>
             </table>

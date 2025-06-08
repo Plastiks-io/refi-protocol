@@ -2,7 +2,7 @@ import express from "express";
 import {
   initializeRoadmap,
   updateRoadmap,
-  getAllRoadmaps,
+  getAllActiveRoadmaps,
   releaseFunds,
   queryTransaction,
   queryAddressHistory,
@@ -17,7 +17,7 @@ import { adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-router.get("/all", getAllRoadmaps);
+router.get("/all", getAllActiveRoadmaps);
 router.post("/update", updateRoadmap);
 router.post("/initialize", initializeRoadmap);
 router.post("/release", releaseFunds);

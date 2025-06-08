@@ -9,7 +9,6 @@ import { RootState } from "../redux/store";
 import { setWallet, disconnectWallet } from "../redux/walletSlice";
 import Popup from "./Popup";
 import { toast } from "sonner";
-import { resetTransactions } from "../redux/TransactionSlice";
 import { clearAuthUser, setAuthUser } from "@/redux/authSlice";
 import { signInOnServer, signOutOnServer } from "@/services/auth";
 
@@ -72,7 +71,6 @@ const Navbar = () => {
       toast.error("Failed to sign out from server");
     }
     dispatch(disconnectWallet());
-    dispatch(resetTransactions());
     dispatch(clearAuthUser());
   };
 
@@ -128,6 +126,19 @@ const Navbar = () => {
               } hover:text-blue-600 transition`}
             >
               Buy NFT
+            </Link>
+            <Link
+              to="/lend"
+              className={`${
+                isActive("/lend")
+                  ? "text-[#0D0D0D] font-semibold text-xl border-b-2"
+                  : "text-gray-500 text-xl"
+              } hover:text-blue-600 transition`}
+              style={{
+                display: walletAddress ? "block" : "none",
+              }}
+            >
+              Lend
             </Link>
             <Link
               to="/admin"

@@ -69,6 +69,11 @@ ArchivedRoadmap.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "archived",
+    },
   },
   {
     sequelize,

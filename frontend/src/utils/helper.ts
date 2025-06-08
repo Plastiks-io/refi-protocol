@@ -66,3 +66,48 @@ export const formatAmount = (amount: number) => {
   const roundedAmount = Math.round(amount * 100) / 100;
   return roundedAmount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
+
+/**
+ * Accepts a Date object or ISO‐string, and returns an object containing:
+ *  - datePart: formatted as "MMM DD, YYYY"
+ *  - timePart: formatted as "h:mm AM/PM UTC"
+ */
+export const formatDateTime = (
+  ts: Date | string
+): { datePart: string; timePart: string } => {
+  // 1. Ensure we have a JS Date object
+  const dateObj = typeof ts === "string" ? new Date(ts) : ts;
+
+  // 2. Define formatting options for the "datePart"
+  //    month: "short"  → e.g. "Jan", "Feb", etc.
+  //    day: "2-digit" → always two digits, e.g. "05", "15"
+  //    year: "numeric" → full year like "2025"
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  };
+
+  // 3. Define formatting options for the "timePart"
+  //    hour: "numeric"    → hour in 12‐hour format (no leading zero)
+  //    minute: "2-digit"  → always two digits for minutes, e.g. "05", "30"
+  //    hour12: true       → use 12‐hour clock (AM/PM)
+  //    timeZone: "UTC"    → force output in UTC
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "UTC",
+  };
+
+  // 4. Format the date portion (e.g. "Jan 15, 2025")
+  const datePart = new Intl.DateTimeFormat("en-US", dateOptions).format(
+    dateObj
+  );
+
+  // 5. Format the time portion (e.g. "12:30 PM"), then append " UTC"
+  const rawTime = new Intl.DateTimeFormat("en-US", timeOptions).format(dateObj);
+  const timePart = `${rawTime} UTC`;
+
+  return { datePart, timePart };
+};
