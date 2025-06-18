@@ -1,5 +1,5 @@
 // src/components/admin/Setting.tsx
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { Loader2, X, Settings, Users, Loader } from "lucide-react";
@@ -12,14 +12,24 @@ import { addRoadmap } from "@/redux/roadmapSlice";
 import { User2 } from "@/assets/icons";
 import { removeAdmin } from "@/redux/adminSlice";
 import AddAdminPopup from "./AddAdminPopup";
+import { cardanoClient } from "@/services/cardano";
+import { WalletContext } from "@/App";
 
 const SettingsComponent = () => {
   const dispatch = useDispatch<AppDispatch>();
 
+  const wallet = useContext(WalletContext);
+
   // function to restore archived roadmap
   const restoreRoadmap = async (roadmap: any) => {
+    if (!wallet) {
+      toast.error("Wallet is not connected");
+      return;
+    }
     try {
       setLoading(true);
+      const txHash = await cardanoClient.restoreRoadmap(wallet, roadmap);
+      toast.success("Transaction sent successfully! " + txHash);
       const url = import.meta.env.VITE_SERVER_URL;
       const apiUrl = `${url}/roadmap/restore/${roadmap.id}`;
       const response = await axios.post(apiUrl, null, {
@@ -54,7 +64,7 @@ const SettingsComponent = () => {
       // also remove from redux state
       dispatch(removeArchivedRoadmap(id));
       console.log(response.data);
-      toast.success("Roadmap restored successfully");
+      toast.success("Roadmap deleted successfully");
       setLoading(false);
     } catch (error) {
       toast.error("Failed to delete roadmap");

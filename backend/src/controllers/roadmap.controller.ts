@@ -23,6 +23,15 @@ import {
 dotenv.config();
 import CompletedRoadmap from "../models/completedRoadmap.model.js";
 import ArchivedRoadmap from "../models/archivedRoadmap.model.js";
+import {
+  buildLenderAction,
+  buildLenderDatum,
+  getPubKeyHash,
+  parseLenderDatum,
+  parseRoadmapDatum,
+} from "./stakeReward.controller.js";
+import { refiValidator, stakeRewardValidator } from "../contract/contracts.js";
+import { LenderDatum } from "../types/stake.reward.types.js";
 
 const initializeLucid = async () => {
   const lucid = await Lucid.new(
@@ -79,20 +88,11 @@ const initializeRoadmap = async (
 
     const lucid = await initializeLucid();
 
-    const adminSeed: string = process.env.ADMIN_SEED || "";
+    const adminSeed: string = process.env.ADMIN_SEED!;
     lucid.selectWalletFromSeed(adminSeed);
-    const { paymentCredential } = lucid.utils.getAddressDetails(
-      await lucid.wallet.address()
-    );
-    const adminPkh = paymentCredential?.hash;
+    const adminsPkh = await getPubKeyHash(lucid);
 
-    const cbor = process.env.CBOR!;
-    const RefiScript: Script = {
-      type: "PlutusV2",
-      script: cbor,
-    };
-
-    const RefiAddress = lucid.utils.validatorToAddress(RefiScript);
+    const RefiAddress = lucid.utils.validatorToAddress(refiValidator);
 
     // check if roadmap already exist with same preId and roadmapId
     const utxos = await lucid.utxosAt(RefiAddress);
@@ -142,14 +142,14 @@ const initializeRoadmap = async (
       fromText(roadmapName || ""),
       fromText(roadmapDescription || ""),
       BigInt(0),
-      adminPkh || "",
-      prePkh || "",
-      preSkh || "",
-      BigInt(totalPlasticCredits || 0),
+      [adminsPkh],
+      prePkh,
+      preSkh,
+      BigInt(totalPlasticCredits),
       BigInt(0),
-      BigInt(totalPlasticTokens || 0),
+      BigInt(totalPlasticTokens),
       BigInt(0),
-      BigInt(totalPlastic || 0),
+      BigInt(totalPlastic),
       BigInt(0),
       fromText(new Date().toISOString()),
     ]);
@@ -196,99 +196,152 @@ const updateRoadmap = async (req: Request, res: Response): Promise<void> => {
     const adminSeed = process.env.ADMIN_SEED!;
     lucid.selectWalletFromSeed(adminSeed);
     const adminAddress = await lucid.wallet.address();
-    // 1. Initialize wallet and scripts
-    const RefiScript: Script = {
-      type: "PlutusV2",
-      script: process.env.CBOR!,
-    };
-    const RefiAddress = lucid.utils.validatorToAddress(RefiScript);
 
-    // 2. Find matching UTXO
-    const utxos = await lucid.utxosAt(RefiAddress);
-    const matchedUtxo = utxos.find((utxo) => {
-      if (!utxo.datum) return false;
-      const datum = Data.from(utxo.datum) as Constr<Data>;
+    // Find matching UTXO at refi contract
+    const refiContractAddress = lucid.utils.validatorToAddress(refiValidator);
+    const utxos = await lucid.utxosAt(refiContractAddress);
+    const matchedUtxo = utxos.find((u) => {
+      if (!u.datum) return false;
+      const d = Data.from(u.datum) as Constr<Data>;
       return (
-        toText(datum.fields[0] as string) === preId &&
-        toText(datum.fields[1] as string) === roadmapId
+        toText(d.fields[0] as string) === preId &&
+        toText(d.fields[1] as string) === roadmapId
       );
     });
+    if (!matchedUtxo?.datum) throw new Error("No matching roadmap UTxO");
 
-    // console.log("matchedUtxo", matchedUtxo);
-
-    if (!matchedUtxo) {
-      res.status(404).json({ error: "Roadmap UTXO not found" });
-      return;
-    }
-
-    // 3. Decode and prepare updated datum
-    const oldDatum = Data.from(matchedUtxo.datum!) as Constr<Data>;
-    const totalPlasticCredits = oldDatum.fields[8] as bigint;
-    const newSoldCredits =
-      (oldDatum.fields[9] as bigint) + BigInt(soldPlasticCredit);
-
-    // Calculate progress using integer math
-    const progress = (newSoldCredits * 10000n) / totalPlasticCredits;
-    const newSentTokens = (progress * (oldDatum.fields[10] as bigint)) / 10000n;
-    const recoveredPlastic =
-      (progress * (oldDatum.fields[12] as bigint)) / 10000n;
-
-    // 4. Build new datum
+    const old = parseRoadmapDatum(Data.from(matchedUtxo.datum));
+    const newSold = old.soldPlasticCredits + BigInt(soldPlasticCredit);
+    const progress = (newSold * 10000n) / old.totalPlasticCredits;
+    const newSent = (progress * old.totalPlasticTokens) / 10000n;
+    const recovered = (progress * old.totalPlastic) / 10000n;
     const updatedDatum = new Constr(0, [
-      oldDatum.fields[0], // preId
-      oldDatum.fields[1], // roadmapId
-      oldDatum.fields[2], // roadmapName
-      oldDatum.fields[3], // roadmapDescription
-      progress, // updated progress
-      oldDatum.fields[5], // adminPkh
-      oldDatum.fields[6], // prePkh
-      oldDatum.fields[7], // preSkh
-      oldDatum.fields[8], // totalPlasticCredits
-      newSoldCredits, // updated sold credits
-      oldDatum.fields[10], // totalPlasticTokens
-      newSentTokens, // updated sent tokens
-      oldDatum.fields[12], // totalPlastic
-      recoveredPlastic, // updated recovered plastic
-      oldDatum.fields[14], // same initialization time
+      fromText(old.preId),
+      fromText(old.roadmapId),
+      fromText(old.roadmapName),
+      fromText(old.roadmapDescription),
+      BigInt(progress),
+      old.adminsPkh,
+      old.prePkh,
+      old.preSkh,
+      BigInt(old.totalPlasticCredits),
+      BigInt(newSold),
+      BigInt(old.totalPlasticTokens),
+      BigInt(newSent),
+      BigInt(old.totalPlastic),
+      BigInt(recovered),
+      fromText(old.createdAt),
     ]);
 
-    const redeemer = Data.to(new Constr(0, [progress]));
-    const plastikAssetId: string = process.env.PLASTIK || "";
-    const plastikToLock = (newSentTokens * 80n) / 100n;
+    // Prepare reward contract UTxO
+    const stakeAddr = lucid.utils.validatorToAddress(stakeRewardValidator);
+    const stakeUtxos = await lucid.utxosAt(stakeAddr);
+    if (stakeUtxos.length === 0) throw new Error("No stake UTxOs found");
+    const stakeUtxo = stakeUtxos[0];
+    if (!stakeUtxo.datum) throw new Error("Missing stake datum");
+    const lender = parseLenderDatum(Data.from(stakeUtxo.datum));
 
-    // 5. Build transaction
-    // 1 Plastik Credits = 100 Plastik Token
-    // lock the  80% plastik token equal to sent plastik token on smart contract
-    const tx = await lucid
+    const adminPkh = await getPubKeyHash(lucid);
+    if (!lender.adminsPkh.includes(adminPkh)) throw new Error("Unauthorized");
+
+    const ptUnit = process.env.PLASTIC_TOKEN!;
+    const needPT = BigInt(soldPlasticCredit) * 80n;
+    // sum PT in this single UTxO
+    const contractPT = stakeUtxo.assets[ptUnit] || 0n;
+
+    // Collect any extra from admin if contractPT insufficient
+    let extraAdminUtxo;
+    if (contractPT < needPT) {
+      const adminUtxos = await lucid.utxosAt(adminAddress);
+      extraAdminUtxo = adminUtxos.find(
+        (u) => (u.assets[ptUnit] || 0n) >= needPT - contractPT
+      );
+      if (!extraAdminUtxo) throw new Error("Admin has insufficient PT");
+    }
+
+    // Build redeemers and new lender datum
+    const refiRedeemer = Data.to(new Constr(0, [progress]));
+    const lenderRedeemer = Data.to(
+      buildLenderAction({ type: "FundPlastikToEscrow", amount: needPT })
+    );
+    const precision = 1_000_000n;
+    const rewardMicro = (BigInt(soldPlasticCredit) * precision * 2n) / 100n;
+    const totalReward = lender.totalReward + rewardMicro;
+    const updatedLenders: [string, [bigint, bigint]][] = lender.lenders.map(
+      ([pk, [bal, debt]]): [string, [bigint, bigint]] => [
+        pk,
+        [bal, (bal * totalReward) / lender.totalPT],
+      ]
+    );
+    const newLenderDatum: LenderDatum = {
+      adminsPkh: lender.adminsPkh,
+      totalPT: lender.totalPT,
+      totalReward,
+      lenders: updatedLenders,
+    };
+
+    const usdmAssetUnit: string = process.env.USDM_TOKEN!;
+    // Build assets for refi and stake outputs
+    const refiAssets: Assets = {
+      lovelace: matchedUtxo.assets.lovelace,
+      [ptUnit]: (matchedUtxo.assets[ptUnit] || 0n) + needPT,
+    };
+    if (matchedUtxo.assets[usdmAssetUnit]) {
+      refiAssets[usdmAssetUnit] = matchedUtxo.assets[usdmAssetUnit];
+    }
+
+    const stakeAssets: Assets = {
+      [usdmAssetUnit]: (stakeUtxo.assets[usdmAssetUnit] || 0n) + rewardMicro,
+    };
+    if (stakeUtxo.assets[ptUnit] - needPT >= 0n) {
+      stakeAssets[ptUnit] = (stakeUtxo.assets[ptUnit] || 0n) - needPT;
+    }
+    // console.log(stakeAssets);
+
+    // Build Tx
+    let txBuilder = lucid
       .newTx()
-      .collectFrom([matchedUtxo], redeemer)
-      .attachSpendingValidator(RefiScript) // required for spending
-      .addSigner(adminAddress)
+      // refi update
+      .collectFrom([matchedUtxo], refiRedeemer)
+      .attachSpendingValidator(refiValidator)
       .payToContract(
-        RefiAddress,
+        lucid.utils.validatorToAddress(refiValidator),
         { inline: Data.to(updatedDatum) },
-        {
-          lovelace: matchedUtxo.assets.lovelace,
-          [plastikAssetId]: plastikToLock,
-        }
+        refiAssets
       )
-      .complete();
-    // 6. Sign and submit
-    const signedTx = await tx.sign().complete();
-    const txHash = await signedTx.submit();
+      // stake payout
+      .collectFrom([stakeUtxo], lenderRedeemer);
+
+    // if extra admin funds needed, collect from admin UTxO
+    if (extraAdminUtxo) {
+      txBuilder = txBuilder.collectFrom([extraAdminUtxo]);
+    }
+
+    txBuilder = txBuilder
+      .attachSpendingValidator(stakeRewardValidator)
+      .payToContract(
+        stakeAddr,
+        { inline: Data.to(buildLenderDatum(newLenderDatum)) },
+        stakeAssets
+      )
+      .addSigner(adminAddress);
+
+    const tx = await txBuilder.complete();
+    const signed = await tx.sign().complete();
+    const hash = await signed.submit();
 
     res.status(200).json({
-      message: "Roadmap updated successfully",
-      txHash,
+      message: "Roadmap updated",
+      txHash: hash,
       newProgress: Number(progress) / 100,
       success: true,
     });
   } catch (err) {
-    console.error("Error in updateRoadmap:", err);
+    console.error(err);
     res.status(500).json({
-      message: "Something went wrong while updating Roadmap",
+      message: "Failed to update roadmap",
       success: false,
-      error: err,
+      error: err instanceof Error ? err.message : err,
     });
   }
 };
@@ -299,7 +352,7 @@ const getAllActiveRoadmaps = async (
 ): Promise<void> => {
   try {
     const lucid = await initializeLucid();
-    const cbor = process.env.CBOR!;
+    const cbor = process.env.REFI_CBOR!;
     const RefiScript: Script = {
       type: "PlutusV2",
       script: cbor,
@@ -332,6 +385,15 @@ const getAllActiveRoadmaps = async (
           paymentCredential,
           stakeCredential
         );
+        const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
+        const ptAssetUnit = process.env.PLASTIC_TOKEN!;
+        const fundsMissing =
+          ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
+
+        const usdmAssetUnit: string = process.env.USDM_TOKEN!;
+        const fundsDistributed =
+          utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;
+
         const data = {
           preId: toText(decodedDatum.fields[0] as string),
           roadmapId: toText(decodedDatum.fields[1] as string),
@@ -347,6 +409,8 @@ const getAllActiveRoadmaps = async (
           recoveredPlastic: Number(decodedDatum.fields[13] as bigint),
           createdAt: toText(decodedDatum.fields[14] as string),
           status: "active",
+          fundsMissing: fundsMissing.toString(),
+          fundsDistributed: fundsDistributed.toString(),
         };
         allDetails.push(data);
       })
@@ -367,113 +431,56 @@ const getAllActiveRoadmaps = async (
   }
 };
 
-const releaseFunds = async (req: Request, res: Response): Promise<void> => {
+const saveRoadmap = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { preId, roadmapId }: ReleaseFundsRequest = req.body;
-    const lucid = await initializeLucid();
-    const adminSeed = process.env.ADMIN_SEED!;
-    lucid.selectWalletFromSeed(adminSeed);
-    const adminAddress = await lucid.wallet.address();
-    // 1. Initialize wallet and scripts
-    const RefiScript: Script = {
-      type: "PlutusV2",
-      script: process.env.CBOR!,
-    };
-    const RefiAddress = lucid.utils.validatorToAddress(RefiScript);
+    // Expecting full roadmap object under `roadmap` key in the request body
+    const roadmap = req.body;
 
-    // 2. Find matching UTXO
-    const utxos = await lucid.utxosAt(RefiAddress);
-    const matchedUtxo = utxos.find((utxo) => {
-      if (!utxo.datum) return false;
-      const datum = Data.from(utxo.datum) as Constr<Data>;
-      return (
-        toText(datum.fields[0] as string) === preId &&
-        toText(datum.fields[1] as string) === roadmapId
-      );
+    // console.log(roadmap);
+
+    // Destructure and type-convert as needed
+    const {
+      preId,
+      roadmapId,
+      roadmapName,
+      roadmapDescription,
+      progress,
+      preAddress,
+      totalPlasticCredits,
+      soldPlasticCredits,
+      totalPlasticTokens,
+      sentPlasticTokens,
+      totalPlastic,
+      recoveredPlastic,
+      createdAt,
+    } = roadmap;
+
+    // Create and persist the document
+    const completedRoadmap = await CompletedRoadmap.create({
+      preId,
+      roadmapId,
+      roadmapName,
+      roadmapDescription,
+      progress,
+      preAddress,
+      totalPlasticCredits,
+      soldPlasticCredits,
+      totalPlasticTokens,
+      sentPlasticTokens,
+      totalPlastic,
+      recoveredPlastic,
+      createdAt: createdAt ? new Date(createdAt) : new Date(),
     });
-
-    // console.log("matchedUtxo", matchedUtxo);
-
-    if (!matchedUtxo) {
-      res.status(404).json({ error: "Roadmap UTXO not found", success: false });
-      return;
-    }
-
-    const redeemer = Data.to(new Constr(1, []));
-    const plastikAssetId: string = process.env.PLASTIK || "";
-    const usdmAssetId: string = process.env.USDM || "";
-    // 3. Decode updated datum to find pre Address
-    const oldDatum = Data.from(matchedUtxo.datum!) as Constr<Data>;
-    const prePkh = oldDatum.fields[6] as string;
-    const preSkh = oldDatum.fields[7] as string;
-    const prePaymentCredentail = lucid.utils.keyHashToCredential(prePkh);
-    const preStakeCredential = lucid.utils.keyHashToCredential(preSkh);
-    const preAddress = lucid.utils.credentialToAddress(
-      prePaymentCredentail,
-      preStakeCredential
-    );
-    // console.log(preAddress);
-    const plastikValue = BigInt(matchedUtxo.assets[plastikAssetId]);
-    // console.log(plastikValue);
-    // 4. Sent 2% of plastik token(which will change through governance) locked in contract to deadWallet
-    const deadWallet = process.env.DEAD_WALLET_ADDRESS!;
-    const deadWalletValue = (plastikValue * 2n) / 100n;
-    // console.log("deadWalletValue", deadWalletValue);
-
-    const plastikTokenSendBackToAdmin = plastikValue - deadWalletValue;
-    // console.log("plastikTokenSendBackToAdmin", plastikTokenSendBackToAdmin);
-
-    const usdmValue = plastikTokenSendBackToAdmin / 100n;
-    // console.log("usdmValue", usdmValue);
-
-    const tx = await lucid
-      .newTx()
-      .collectFrom([matchedUtxo], redeemer)
-      .attachSpendingValidator(RefiScript)
-      .addSigner(adminAddress)
-      .payToAddress(adminAddress, {
-        lovelace: matchedUtxo.assets.lovelace,
-        [plastikAssetId]: plastikTokenSendBackToAdmin,
-      })
-      .payToAddress(deadWallet, {
-        [plastikAssetId]: deadWalletValue,
-      })
-      .payToAddress(preAddress, {
-        [usdmAssetId]: usdmValue,
-      })
-      .complete();
-
-    const signedTx = await tx.sign().complete();
-    const txHash = await signedTx.submit();
-
-    // 5. Save the Roadmap to CompletedRoadmap table
-    const completedRoadmap = {
-      preId: toText(oldDatum.fields[0] as string),
-      roadmapId: toText(oldDatum.fields[1] as string),
-      roadmapName: toText(oldDatum.fields[2] as string),
-      roadmapDescription: toText(oldDatum.fields[3] as string),
-      progress: Number(oldDatum.fields[4] as bigint) / 100,
-      preAddress: preAddress,
-      totalPlasticCredits: Number(oldDatum.fields[8] as bigint),
-      soldPlasticCredits: Number(oldDatum.fields[9] as bigint),
-      totalPlasticTokens: Number(oldDatum.fields[10] as bigint),
-      sentPlasticTokens: Number(oldDatum.fields[11] as bigint),
-      totalPlastic: Number(oldDatum.fields[12] as bigint),
-      recoveredPlastic: Number(oldDatum.fields[13] as bigint),
-      createdAt: toText(oldDatum.fields[14] as string),
-    };
-    await CompletedRoadmap.create(completedRoadmap);
-    // console.log("Completed Roadmap:", completedRoadmap);
 
     res.status(201).json({
-      message: "Funds released successfully",
+      message: "Roadmap saved to DB successfully",
       success: true,
-      txHash: txHash,
+      data: completedRoadmap,
     });
-    return;
   } catch (error) {
+    console.error("Error saving roadmap:", error);
     res.status(500).json({
-      message: "Something went wrong during releasing funds",
+      message: "Something went wrong during saving roadmap to DB",
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
     });
@@ -683,99 +690,56 @@ const getAllCompletedRoadmaps = async (
   }
 };
 
-const archivedRoadmap = async (req: Request, res: Response) => {
+const saveArchivedRoadmap = async (req: Request, res: Response) => {
   try {
-    const { preId, roadmapId }: ArchivedRoadmapRequest = req.body;
-    const lucid = await initializeLucid();
-    // 1. Initialize wallet and scripts
-    const RefiScript: Script = {
-      type: "PlutusV2",
-      script: process.env.CBOR!,
-    };
-    const RefiAddress = lucid.utils.validatorToAddress(RefiScript);
-    const adminSeed = process.env.ADMIN_SEED!;
-    lucid.selectWalletFromSeed(adminSeed);
-    const adminAddress = process.env.ADMIN_WALLET_ADDRESS!;
-    const plastikAssetId = process.env.PLASTIK!;
-    // 2. Find matching UTXO
-    const utxos = await lucid.utxosAt(RefiAddress);
-    const matchedUtxo = utxos.find((utxo) => {
-      if (!utxo.datum) return false;
-      const datum = Data.from(utxo.datum) as Constr<Data>;
-      return (
-        toText(datum.fields[0] as string) === preId &&
-        toText(datum.fields[1] as string) === roadmapId
-      );
-    });
+    // Expecting full roadmap object under `roadmap` key in the request body
+    const roadmap = req.body;
 
-    if (!matchedUtxo) {
-      res.status(404).json({ error: "Roadmap UTXO not found" });
-      return;
-    }
+    // console.log("roadmap", roadmap);
 
-    // 3. Decode and prepare updated datum
-    const oldDatum = Data.from(matchedUtxo.datum!) as Constr<Data>;
-    const prePaymentCredentail = lucid.utils.keyHashToCredential(
-      oldDatum.fields[6] as string
-    );
-    const preStakeCredential = lucid.utils.keyHashToCredential(
-      oldDatum.fields[7] as string
-    );
-    const preAddress = lucid.utils.credentialToAddress(
-      prePaymentCredentail,
-      preStakeCredential
-    );
-    const redeemer = Data.to(new Constr(2, []));
-    const plastikToLock = ((oldDatum.fields[11] as bigint) * 4n) / 5n;
-    let asset: Assets;
-    if (plastikToLock > 0) {
-      asset = {
-        lovelace: 3_000_000n,
-        [plastikAssetId]: plastikToLock,
-      };
-    } else {
-      asset = {
-        lovelace: 3_000_000n,
-      };
-    }
-    //4 . Send utxo asset to admin address
-    const tx = await lucid
-      .newTx()
-      .collectFrom([matchedUtxo], redeemer)
-      .addSigner(adminAddress)
-      .attachSpendingValidator(RefiScript)
-      .payToAddress(adminAddress, asset)
-      .complete();
-
-    const signedTx = await tx.sign().complete();
-    const txHash = await signedTx.submit();
+    // Destructure and type-convert as needed
+    const {
+      preId,
+      roadmapId,
+      roadmapName,
+      roadmapDescription,
+      progress,
+      preAddress,
+      totalPlasticCredits,
+      soldPlasticCredits,
+      totalPlasticTokens,
+      sentPlasticTokens,
+      totalPlastic,
+      recoveredPlastic,
+      createdAt,
+    } = roadmap;
     // 5. Save the Roadmap to CompletedRoadmap table
     const archived_roadmap = {
-      preId: toText(oldDatum.fields[0] as string),
-      roadmapId: toText(oldDatum.fields[1] as string),
-      roadmapName: toText(oldDatum.fields[2] as string),
-      roadmapDescription: toText(oldDatum.fields[3] as string),
-      progress: Number(oldDatum.fields[4] as bigint) / 100,
-      preAddress: preAddress,
-      totalPlasticCredits: Number(oldDatum.fields[8] as bigint),
-      soldPlasticCredits: Number(oldDatum.fields[9] as bigint),
-      totalPlasticTokens: Number(oldDatum.fields[10] as bigint),
-      sentPlasticTokens: Number(oldDatum.fields[11] as bigint),
-      totalPlastic: Number(oldDatum.fields[12] as bigint),
-      recoveredPlastic: Number(oldDatum.fields[13] as bigint),
-      createdAt: toText(oldDatum.fields[14] as string),
+      preId,
+      roadmapId,
+      roadmapName,
+      roadmapDescription,
+      progress,
+      preAddress,
+      totalPlasticCredits,
+      soldPlasticCredits,
+      totalPlasticTokens,
+      sentPlasticTokens,
+      totalPlastic,
+      recoveredPlastic,
+      createdAt: createdAt ? new Date(createdAt) : new Date(),
     };
     await ArchivedRoadmap.create(archived_roadmap);
 
     res.status(201).json({
-      message: "Roadmap Archived successfully",
+      message: "Roadmap Saved in Archived DB successfully",
       success: true,
-      txHash: txHash,
     });
   } catch (error) {
-    console.error("Error archiving roadmap:", error);
+    console.error("Error saving archived roadmap:", error);
     res.status(500).json({
-      message: "An error occurred while archiving roadmap",
+      message: "Something went wrong during saving archived roadmap to DB",
+      success: false,
       error: error instanceof Error ? error.message : "Unknown error",
     });
   }
@@ -784,17 +748,6 @@ const archivedRoadmap = async (req: Request, res: Response) => {
 const restoreRoadmap = async (req: Request, res: Response) => {
   try {
     const id = req.params.id;
-    const lucid = await initializeLucid();
-    // 1. Initialize wallet and scripts
-    const RefiScript: Script = {
-      type: "PlutusV2",
-      script: process.env.CBOR!,
-    };
-    const RefiAddress = lucid.utils.validatorToAddress(RefiScript);
-    const adminSeed = process.env.ADMIN_SEED!;
-    lucid.selectWalletFromSeed(adminSeed);
-    const adminAddress = process.env.ADMIN_WALLET_ADDRESS!;
-
     // 2. Find the Archived Roadmap by id
     const archived_Roadmap = await ArchivedRoadmap.findOne({
       where: { id },
@@ -805,71 +758,11 @@ const restoreRoadmap = async (req: Request, res: Response) => {
       return;
     }
 
-    // 3. Decode and prepare updated datum
-    const { paymentCredential, stakeCredential } =
-      lucid.utils.getAddressDetails(archived_Roadmap.dataValues.preAddress);
-    if (!paymentCredential?.hash || !stakeCredential?.hash) {
-      throw new Error(
-        "Failed to parse payment or stake credential from address"
-      );
-    }
-
-    const adminPkh = process.env.ADMIN_PKH!;
-    const datumToLock = new Constr(0, [
-      fromText(archived_Roadmap.dataValues.preId),
-      fromText(archived_Roadmap.dataValues.roadmapId),
-      fromText(archived_Roadmap.dataValues.roadmapName),
-      fromText(archived_Roadmap.dataValues.roadmapDescription),
-      BigInt(archived_Roadmap.dataValues.progress) * 100n,
-      adminPkh,
-      paymentCredential.hash,
-      stakeCredential.hash,
-      BigInt(archived_Roadmap.dataValues.totalPlasticCredits),
-      BigInt(archived_Roadmap.dataValues.soldPlasticCredits),
-      BigInt(archived_Roadmap.dataValues.totalPlasticTokens),
-      BigInt(archived_Roadmap.dataValues.sentPlasticTokens),
-      BigInt(archived_Roadmap.dataValues.totalPlastic),
-      BigInt(archived_Roadmap.dataValues.recoveredPlastic),
-      fromText(archived_Roadmap.dataValues.createdAt.toISOString()),
-    ]);
-
-    const plastikAssetId = process.env.PLASTIK!;
-    const plastikToLock = BigInt(
-      archived_Roadmap.dataValues.sentPlasticTokens * 0.8
-    );
-    let asset: Assets;
-    if (plastikToLock > 0) {
-      asset = {
-        lovelace: 3_000_000n,
-        [plastikAssetId]: plastikToLock,
-      };
-    } else {
-      asset = {
-        lovelace: 3_000_000n,
-      };
-    }
-
-    //4 . lock utxo asset to smart contract
-    const tx = await lucid
-      .newTx()
-      .payToContract(
-        RefiAddress,
-        {
-          inline: Data.to(datumToLock),
-        },
-        asset
-      )
-      .complete();
-    const signedTx = await tx.sign().complete();
-    const txHash = await signedTx.submit();
-
-    // 5. After successful transaction remove archived roadmap from DB
     await ArchivedRoadmap.destroy({ where: { id } });
 
     res.status(201).json({
       message: "Roadmap restored successfully",
       success: true,
-      txHash: txHash,
     });
   } catch (error) {
     console.error("Error restoring roadmap:", error);
@@ -922,14 +815,14 @@ const deleteArchivedRoadmap = async (req: Request, res: Response) => {
 
 export {
   initializeRoadmap,
-  updateRoadmap,
   getAllActiveRoadmaps,
-  releaseFunds,
+  updateRoadmap,
+  saveRoadmap,
   queryTransaction,
   queryAddressHistory,
   getAllCompletedRoadmaps,
   initializeLucid,
-  archivedRoadmap,
+  saveArchivedRoadmap,
   getAllArchivedRoadmaps,
   restoreRoadmap,
   deleteArchivedRoadmap,

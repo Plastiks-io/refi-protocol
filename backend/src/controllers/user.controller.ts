@@ -31,7 +31,7 @@ const sentPC = async (req: Request, res: Response) => {
     // console.log(amount);
 
     const pcAssetId = process.env.PC_ASSET_ID!;
-    const usdmAssetId = process.env.USDM!;
+    const usdmAssetId = process.env.USDM_TOKEN!;
 
     // send minLovelace along with PC token
     const tx = await lucid

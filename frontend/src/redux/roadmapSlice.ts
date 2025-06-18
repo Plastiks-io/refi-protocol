@@ -17,6 +17,8 @@ export interface Roadmap {
   recoveredPlastic: number;
   createdAt: string;
   status: string;
+  fundsMissing: string;
+  fundsDistributed: string;
 }
 
 // Async thunk to fetch roadmaps

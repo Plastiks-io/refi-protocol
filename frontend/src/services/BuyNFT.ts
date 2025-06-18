@@ -1,6 +1,8 @@
 import axios from "axios";
-import { BrowserWallet, Transaction } from "@meshsdk/core";
+import { BrowserWallet } from "@meshsdk/core";
 import { toast } from "sonner";
+// import { meshToLucidAdapter } from "./meshToLucid";
+import { cardanoClient } from "./cardano";
 
 const sendNft = async (wallet: BrowserWallet, quantity: number) => {
   try {
@@ -13,26 +15,52 @@ const sendNft = async (wallet: BrowserWallet, quantity: number) => {
 
     const qty = String(quantity * 1_000_000); // convert ADA to lovelace
     console.log("qty", qty);
+    // 3) Grab networkId and init Lucid / Blockfrost exactly once
+    const networkId = await wallet.getNetworkId();
+    console.log("Network ID:", networkId);
 
-    const tx = new Transaction({
-      initiator: wallet,
-    }).sendAssets(
-      {
-        address: adminAddress,
-      },
-      [
-        {
-          unit: "lovelace",
-          quantity: qty,
-        },
-      ]
-    );
+    if (!cardanoClient.lucidInstance) {
+      await cardanoClient.init(networkId);
+    }
+    // await cardanoClient.init(networkId);
+    const lucid = cardanoClient.getLucid();
 
-    const unsignedTx = await tx.build();
-    const signedTx = await wallet.signTx(unsignedTx);
-    const txHash = await wallet.submitTx(signedTx);
+    // 4) Wire up your wallet via the adapter
+    const walletApi = cardanoClient.meshToLucidAdapter(wallet.walletInstance);
+    lucid.selectWallet(walletApi);
+    console.log("walletApi", walletApi);
+    const params = lucid.provider;
+    console.log("Lucid initialized with provider:", params);
 
-    console.log("Transaction Hash:", txHash);
+    const tx = await lucid
+      .newTx()
+      .payToAddress(adminAddress, {
+        lovelace: BigInt(qty),
+      })
+      .complete();
+    const signed = await tx.sign().complete();
+    const txHash = await signed.submit();
+    console.log("FundUSDM tx submitted:", txHash);
+
+    // const tx = new Transaction({
+    //   initiator: wallet,
+    // }).sendAssets(
+    //   {
+    //     address: adminAddress,
+    //   },
+    //   [
+    //     {
+    //       unit: "lovelace",
+    //       quantity: qty,
+    //     },
+    //   ]
+    // );
+
+    // const unsignedTx = await tx.build();
+    // const signedTx = await wallet.signTx(unsignedTx);
+    // const txHash = await wallet.submitTx(signedTx);
+
+    // console.log("Transaction Hash:", txHash);
 
     const userAddress = await wallet.getChangeAddress();
     console.log("User Address:", userAddress);

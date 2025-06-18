@@ -1,9 +1,9 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
 import { Roadmap } from "./roadmapSlice";
 
 // extend roadmap because it has one more field called id
-interface CompletedRoadmap extends Roadmap {
+export interface CompletedRoadmap extends Roadmap {
   id: string;
 }
 // Async thunk to fetch roadmaps
@@ -31,7 +31,11 @@ const completedRoadmapSlice = createSlice({
     loading: false,
     error: null as string | null,
   },
-  reducers: {},
+  reducers: {
+    addCompletedRoadmap: (state, action: PayloadAction<CompletedRoadmap>) => {
+      state.roadmaps.push(action.payload);
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCompletedRoadmaps.pending, (state) => {
@@ -48,5 +52,6 @@ const completedRoadmapSlice = createSlice({
       });
   },
 });
+export const { addCompletedRoadmap } = completedRoadmapSlice.actions;
 
 export default completedRoadmapSlice.reducer;

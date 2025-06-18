@@ -71,11 +71,11 @@ validate :: PlastiksDatum -> PlastiksRedeemer -> ScriptContext -> Bool
 validate datum redeemer ctx =
     case redeemer of
         UpdateProgress newProgress ->
-            traceIfFalse "No admin signed tx" (isSignedByAnyAdmin info (adminsPkh datum)) &&
+            traceIfFalse "No admin signed the tx" (isSignedByAnyAdmin info (adminsPkh datum)) &&
             traceIfFalse "Invalid progress update" (newProgress > progress datum && newProgress <= 10000)  -- Scaled to 100.00%
 
         Release ->
-            traceIfFalse "No admin signed tx" (isSignedByAnyAdmin info (adminsPkh datum)) &&
+            traceIfFalse "No admin signed the tx" (isSignedByAnyAdmin info (adminsPkh datum)) &&
             traceIfFalse "Progress is not completed" (progress datum == 10000)  -- Must reach 100.00%
 
         Archived ->

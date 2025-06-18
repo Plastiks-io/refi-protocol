@@ -190,10 +190,10 @@ addr_test1qregzqux7knjhg3v8npcp3t35w0dngwkz80ssgvywpk0ade9uy5qk6vl70ntchwh6qysnl
 The following asset IDs are used in the Preprod Cardano network:
 
 - **PLASTIK TOKEN**  
-  `e0b4a2454475355655a7449d3a064b38a22ba6fc83c637e2413ac172504c415354494b`
+  `d4fece6b39f7cd78a3f036b2ae6508c13524b863922da80f68dd9ab7504c415354494b`
 
 - **USDM**  
-  `e8f329da44fb66d033d26a566b0f9f743493b0cf18458c051ac442615553444d`
+  `d4fece6b39f7cd78a3f036b2ae6508c13524b863922da80f68dd9ab75553444d`
 
 - **PLASTIK CREDIT**  
   `be0df58be0d65b9a944bea9488fc60d5320e5bea9b1ba4f5aece0ae1504c4153544943`

@@ -16,7 +16,6 @@ const stats = {
 
 const percentages = [2, 3, 4, 5];
 const Community: React.FC = () => {
-
   const [plastikBalance, setPlastikBalance] = useState<number>(0);
   const [votingAllowed, setVotingAllowed] = useState<boolean>(false);
   const [eligibleforVoting, setEligibleforVoting] = useState<boolean>(false);
@@ -25,7 +24,7 @@ const Community: React.FC = () => {
   const [votingPercentage, setVotingPercentage] = useState<number>(0);
 
   // Data from Environment Variables
-  const plastikTokenAddress = import.meta.env.VITE_PLASTIK_TOKEN_ADDRESS;
+  const plastikTokenAddress = import.meta.env.VITE_PLASTIC_TOKEN;
   const minimumPlastikToInitializeVoting = import.meta.env.VITE_MINIMUM_PLASTIK;
   const minimumPlastikToVote = import.meta.env.VITE_MINIMUM_PLASTIK_TO_VOTE;
 

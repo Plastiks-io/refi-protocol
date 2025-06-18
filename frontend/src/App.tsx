@@ -25,7 +25,7 @@ import Settings from "./components/admin/Setting";
 import { fetchAdmins } from "./redux/adminSlice";
 import Lend from "@/pages/dashboard/lend";
 import PrivateLendRoute from "./components/PrivateLendRoute";
-
+import { CardanoProvider } from "@/contexts/cardanoContexts";
 export const WalletContext = React.createContext<BrowserWallet | null>(null);
 
 function App() {
@@ -68,81 +68,88 @@ function App() {
   };
 
   // Use useEffect to reconnect the wallet when the component mounts or when walletId changes
+  const role = useSelector((state: RootState) => state.auth.role);
+  const isAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
   useEffect(() => {
     reconnectWallet();
     dispatch(fetchRoadmaps());
     dispatch(fetchCompletedRoadmaps());
     dispatch(fetchArchivedRoadmaps());
-    dispatch(fetchAdmins());
+    // only fetch admins if user is already an admin
+    if (isAdmin) {
+      dispatch(fetchAdmins());
+    }
     dispatch(fetchTransactions());
   }, [walletId, dispatch]);
 
   return (
     <WalletContext.Provider value={wallet}>
-      <Router>
-        <div className="flex flex-col min-h-screen">
-          {/* Navbar at the top */}
-          <Navbar />
+      <CardanoProvider wallet={wallet}>
+        <Router>
+          <div className="flex flex-col min-h-screen">
+            {/* Navbar at the top */}
+            <Navbar />
 
-          {/* Main content area */}
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              {/* <Route path="/transactions" element={<Transactions />} /> */}
-              <Route
-                path="/transactions"
-                element={
-                  <Transactions
-                    transactions={transactions}
-                    loading={loading}
-                    error={error}
-                    onPageChange={handlePageChange}
-                  />
-                }
-              />
-              <Route path="/community" element={<Community />} />
-              <Route
-                path="/admin"
-                element={
-                  <PrivateAdminRoute>
-                    <Admin />
-                  </PrivateAdminRoute>
-                }
-              />
-              <Route
-                path="/admin/settings"
-                element={
-                  <PrivateAdminRoute>
-                    <Settings />
-                  </PrivateAdminRoute>
-                }
-              />
-              <Route
-                path="/admin/:roadmapId"
-                element={
-                  <PrivateAdminRoute>
-                    <RoadmapDetails />
-                  </PrivateAdminRoute>
-                }
-              />
-              <Route path="/buy-nft" element={<NFTPurchase />} />
+            {/* Main content area */}
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                {/* <Route path="/transactions" element={<Transactions />} /> */}
+                <Route
+                  path="/transactions"
+                  element={
+                    <Transactions
+                      transactions={transactions}
+                      loading={loading}
+                      error={error}
+                      onPageChange={handlePageChange}
+                    />
+                  }
+                />
+                <Route path="/community" element={<Community />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <PrivateAdminRoute>
+                      <Admin />
+                    </PrivateAdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings"
+                  element={
+                    <PrivateAdminRoute>
+                      <Settings />
+                    </PrivateAdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/:roadmapId"
+                  element={
+                    <PrivateAdminRoute>
+                      <RoadmapDetails />
+                    </PrivateAdminRoute>
+                  }
+                />
+                <Route path="/buy-nft" element={<NFTPurchase />} />
 
-              <Route
-                path="/lend"
-                element={
-                  <PrivateLendRoute>
-                    <Lend />
-                  </PrivateLendRoute>
-                }
-              />
-            </Routes>
-          </main>
+                <Route
+                  path="/lend"
+                  element={
+                    <PrivateLendRoute>
+                      <Lend />
+                    </PrivateLendRoute>
+                  }
+                />
+              </Routes>
+            </main>
 
-          {/* Footer at the bottom */}
-          <Footer />
-        </div>
-        <Toaster position="top-right" />
-      </Router>
+            {/* Footer at the bottom */}
+            <Footer />
+          </div>
+          <Toaster position="top-right" />
+        </Router>
+      </CardanoProvider>
     </WalletContext.Provider>
   );
 }

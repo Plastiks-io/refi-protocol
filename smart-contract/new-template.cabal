@@ -32,11 +32,11 @@ common common-all
                     , plutus-ledger-api
                     , plutus-tx
                     , base
-                    , plutus-tx-plugin
                     , serialise
+                    , plutus-tx-plugin
                     , cardano-api
-                    , tasty
-                    , tasty-hunit
+                    -- , tasty
+                    -- , tasty-hunit
 
 
   ghc-options: -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
@@ -58,18 +58,22 @@ library
                   Lend.StakeReward,
                   Lend.Compiler
 
--- test-suite test
---   type:                exitcode-stdio-1.0
---   hs-source-dirs:      test
---   main-is:             Spec.hs
---   build-depends:       
---     base,
---     tasty,
---     tasty-hunit,
---     plutus-ledger,
---     plutus-ledger-api,
---     plutus-tx,
---     plutus-core,
---     containers,
---     smart-contract
---   default-language:    Haskell2010
+test-suite test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       
+    base,
+    tasty,
+    tasty-hunit,
+    plutus-ledger,
+    plutus-ledger-api,
+    plutus-tx,
+    plutus-core,
+    containers,
+    smart-contract,
+    bytestring
+  default-language:    Haskell2010
+  other-modules:
+    Spec.Refi
+    Spec.StakeReward

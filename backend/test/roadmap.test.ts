@@ -289,7 +289,7 @@ describe("Roadmap Controllers Tests", () => {
         address: "fakeRefiAddress",
         assets: {
           lovelace: 10000000n,
-          [process.env.PLASTIK || ""]: 1000000n,
+          [process.env.PLASTIK_TOKEN || ""]: 1000000n,
         },
         datum: Data.to(oldDatum),
       };
@@ -469,7 +469,7 @@ describe("Roadmap Controllers Tests", () => {
     // It Return 201 for Successful release of funds
     it("returns 201 and txHash when a matching UTxO exists", async () => {
       // Mock environment variables
-      process.env.PLASTIK = "PLASTIK";
+      process.env.PLASTIK_TOKEN = "PLASTIK_TOKEN";
       process.env.USDM = "USDM";
       process.env.DEAD_WALLET_ADDRESS = "dead_wallet";
 
@@ -502,7 +502,7 @@ describe("Roadmap Controllers Tests", () => {
         address: "fakeRefiAddress",
         assets: {
           lovelace: 10000000n,
-          [process.env.PLASTIK!]: 1000000n, // Match env asset ID
+          [process.env.PLASTIK_TOKEN!]: 1000000n, // Match env asset ID
         },
         datum: Data.to(mockDatum),
       };
@@ -618,7 +618,7 @@ describe("Roadmap Controllers Tests", () => {
         address: "fakeRefiAddress",
         assets: {
           lovelace: 10000000n,
-          [process.env.PLASTIK!]: 1000000n,
+          [process.env.PLASTIK_TOKEN!]: 1000000n,
         },
         datum: Data.to(mockDatum),
       };
@@ -629,7 +629,7 @@ describe("Roadmap Controllers Tests", () => {
       ] as unknown as never);
       const data = {
         assets: {
-          PLASTIK: "1000000",
+          PLASTIK_TOKEN: "1000000",
           lovelace: "10000000",
         },
         preId: "pre123",

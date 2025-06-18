@@ -1,62 +1,135 @@
-import { useState } from "react";
-
-import { DollarSign, Info } from "lucide-react";
-
-type Roadmap = {
-  title: string;
-  tokensLent: number;
-  completion: number;
-  reward: number;
-};
+import { useContext, useEffect, useState } from "react";
+import { DollarSign, Info, Loader2 } from "lucide-react";
+import { WalletContext } from "@/App";
+import { cardanoClient } from "@/services/cardano";
+import { toast } from "sonner";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import { useCardanoData } from "@/contexts/cardanoContexts";
 
 export default function Lend() {
-  const [lentTokens, setLentTokens] = useState(1500);
-  const [heldTokens, setHeldTokens] = useState(5000);
-  const [availableTokens, setAvailableTokens] = useState(3500);
+  // on‑chain values
+  const { data, refresh } = useCardanoData();
+  // local UI state
   const [showWithdrawalWarning, setShowWithdrawalWarning] = useState(false);
   const [showLendModal, setShowLendModal] = useState(false);
   const [lendAmount, setLendAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [plastikHoldings, setPlastikHoldings] = useState(0);
 
-  const [roadmaps, setRoadmaps] = useState<Roadmap[]>([
-    {
-      title: "Pacific Cleanup Initiative",
-      tokensLent: 1000,
-      completion: 65,
-      reward: 2000,
-    },
-    {
-      title: "Urban Recycling Program",
-      tokensLent: 500,
-      completion: 30,
-      reward: 1000,
-    },
-  ]);
+  const wallet = useContext(WalletContext);
+  const { roadmaps } = useSelector((state: RootState) => state.roadmaps);
 
-  const handleLendTokens = () => {
-    const amount = parseInt(lendAmount);
-    if (amount > 0) {
-      setLentTokens((prev) => prev + amount);
-      setHeldTokens((prev) => prev + amount);
-      setAvailableTokens((prev) => prev + amount);
-      setLendAmount("");
+  useEffect(() => {
+    if (wallet === null) {
+      setPlastikHoldings(0);
+      return;
+    }
+    fetchBalances();
+  }, [wallet]);
+
+  const handleLendTokens = async () => {
+    const amount = parseInt(lendAmount, 10);
+    if (amount <= 0) return;
+
+    try {
+      if (!wallet) throw new Error("Wallet not connected");
+      const txHash = await cardanoClient.depositPlastik(wallet, BigInt(amount));
+      toast.success("Tokens lent successfully! " + txHash);
       setShowLendModal(false);
+      setLendAmount("");
+    } catch (error) {
+      console.error("Error lending tokens:", error);
+      toast.error(
+        `Failed to lend tokens: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   };
 
-  const handleWithdraw = () => {
-    const amount = parseInt(withdrawAmount);
-    if (amount > 0) {
-      if (amount > availableTokens) {
-        setShowWithdrawalWarning(true);
-        return;
-      }
-      setLentTokens((prev) => prev - amount);
-      setHeldTokens((prev) => prev - amount);
-      setAvailableTokens((prev) => prev - amount);
+  const handleWithdraw = async () => {
+    const amount = parseInt(withdrawAmount, 10);
+    if (amount <= 0) return;
+
+    if (data && BigInt(amount) > data.staked) {
+      setShowWithdrawalWarning(true);
+      return;
+    }
+
+    try {
+      if (!wallet) throw new Error("Wallet not connected");
+      const txHash = await cardanoClient.withdrawPlastik(
+        wallet,
+        BigInt(amount)
+      );
+      toast.success("Tokens withdrawn successfully! " + txHash);
+      setShowWithdrawalWarning(false);
       setWithdrawAmount("");
+    } catch (error) {
+      console.error("Error withdrawing tokens:", error);
+      toast.error(
+        `Failed to withdraw tokens: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   };
+
+  const redeemReward = async () => {
+    if (!data || data.rewardDebt === BigInt(0)) {
+      toast.error("No rewards available to redeem");
+      return;
+    }
+    try {
+      if (!wallet) throw new Error("Wallet not connected");
+      const txHash = await cardanoClient.redeemReward(wallet);
+      toast.success("Tokens withdrawn successfully! " + txHash);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        `${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  };
+
+  const fetchBalances = async () => {
+    try {
+      const plastikTokenAddress = import.meta.env.VITE_PLASTIC_TOKEN;
+
+      if (!wallet) return;
+      const balances = await wallet.getBalance();
+      console.log(balances);
+      console.log("plastikTokenAddress", plastikTokenAddress);
+
+      const plastik = balances.find(
+        (item) => item.unit === plastikTokenAddress
+      )?.quantity;
+      console.log(plastik);
+      setPlastikHoldings(plastik ? Number(plastik) : 0);
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+      toast.error(
+        `Failed to fetch balances: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  if (data === null) {
+    return (
+      <div
+        className="bg-white flex justify-center items-center min-h-screen"
+        role="status"
+      >
+        <Loader2 className="animate-spin w-10 h-10 text-gray-600" />
+      </div>
+    );
+  }
+
+  const stakedNumber = Number(data.staked);
+  const rewardNumber = Number(data.rewardDebt);
 
   return (
     <div className="bg-white text-black mx-auto px-4 md:px-10 lg:px-20 py-6 min-h-screen">
@@ -66,33 +139,39 @@ export default function Lend() {
           Put your PLASTIK tokens to use
         </h1>
         <p className="text-[#082FB9]">
-          Lend up to 1,000,000 PLASTIK and earn 2% interest when roadmaps are
-          completed
+          Lend up to 1,000,000 PLASTIK and earn 2% interest when plastik credit
+          is sold.
         </p>
       </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-2xl shadow-md border border-[#E5E7EB] p-4">
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4">
           <h2 className="text-gray-500 text-sm mb-1">PLASTIK Lent</h2>
-          <p className="text-2xl font-bold">{lentTokens.toLocaleString()}</p>
+          <p className="text-2xl font-bold">{stakedNumber.toLocaleString()}</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-md border border-[#E5E7EB] p-4">
-          <h2 className="text-gray-500 text-sm mb-1">PLASTIK Held</h2>
-          <p className="text-2xl font-bold">{heldTokens.toLocaleString()}</p>
-        </div>
-        <div className="bg-white rounded-2xl shadow-md border border-[#E5E7EB] p-4">
-          <h2 className="text-gray-500 text-sm mb-1">Available</h2>
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4">
+          <h2 className="text-gray-500 text-sm mb-1">Reward USDM</h2>
           <p className="text-2xl font-bold">
-            {availableTokens.toLocaleString()}
+            {Number(rewardNumber / 1_000_000).toLocaleString(undefined, {
+              minimumFractionDigits: 6,
+              maximumFractionDigits: 6,
+            })}
           </p>
         </div>
-        <div className="bg-white rounded-2xl shadow-md border border-[#E5E7EB] p-4 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex items-center justify-center">
           <button
-            onClick={() => console.log("send stablecoins")}
-            className="bg-[#082FB9] hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full transition"
+            onClick={() => setShowWithdrawalWarning(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full"
           >
             Withdraw
+          </button>
+        </div>
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex items-center justify-center">
+          <button
+            onClick={redeemReward}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full"
+          >
+            Redeem Rewards
           </button>
         </div>
       </div>
@@ -124,28 +203,28 @@ export default function Lend() {
               {roadmaps.map((roadmap, index) => (
                 <tr key={index}>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {roadmap.title}
+                    {roadmap.roadmapName}
                   </td>
                   <td className="px-6 py-4 text-right text-sm text-gray-500">
-                    {roadmap.tokensLent.toLocaleString()}
+                    {roadmap.sentPlasticTokens.toLocaleString()} PLASTIK
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end">
                       <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-[#082FB9] transition-all"
-                          style={{ width: `${roadmap.completion}%` }}
+                          style={{ width: `${roadmap.progress}%` }}
                         />
                       </div>
                       <span className="ml-2 text-sm text-gray-500">
-                        {roadmap.completion}%
+                        {roadmap.progress}%
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right text-sm text-gray-500">
                     <div className="flex items-center justify-end">
                       <DollarSign className="w-4 h-4 mr-1 text-[#082FB9]" />
-                      {roadmap.reward.toLocaleString()} USDM
+                      {roadmap.soldPlasticCredits} USDM
                     </div>
                   </td>
                 </tr>
@@ -157,26 +236,49 @@ export default function Lend() {
 
       {/* Lend Tokens Modal */}
       {showLendModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Lend PLASTIK Tokens</h3>
+        <div className="fixed inset-0 bg-[rgba(0,0,0,0.5)] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg py-10">
+            <h3 className="text-xl font-semibold mb-4">Lend PLASTIK Tokens</h3>
             <input
               type="number"
               value={lendAmount}
               onChange={(e) => setLendAmount(e.target.value)}
               placeholder="Enter amount to lend"
-              className="w-full p-3 border rounded-lg mb-4"
+              className="w-full p-3 bg-white rounded-2xl shadow-md border border-gray-200 mb-4"
             />
+            {/* Percentage Buttons */}
+            <div className="flex gap-2 mb-4">
+              {[25, 50, 75, 100].map((percent) => (
+                <button
+                  key={percent}
+                  type="button"
+                  className="flex-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium hover:bg-blue-200 transition"
+                  onClick={() => {
+                    if (data) {
+                      const value = Math.floor(
+                        Number(plastikHoldings) * (percent / 100)
+                      );
+                      setLendAmount(value.toString());
+                    }
+                  }}
+                >
+                  {percent}%
+                </button>
+              ))}
+            </div>
+            <p className="text-lg font-semibold text-gray-500 mb-4">
+              Total Plastik Holdings: {plastikHoldings.toLocaleString()}
+            </p>
             <div className="flex gap-4">
               <button
                 onClick={() => setShowLendModal(false)}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="flex-1 px-4 py-2 bg-white rounded-2xl shadow-md border border-gray-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleLendTokens}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-2xl shadow-md border border-gray-200"
               >
                 Confirm
               </button>
@@ -185,43 +287,67 @@ export default function Lend() {
         </div>
       )}
 
-      {/* Withdrawal Warning Modal */}
+      {/*  Withdrawal Warning Modal */}
       {showWithdrawalWarning && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-[rgba(0,0,0,0.5)] bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-lg py-10">
             <div className="flex items-center mb-4">
               <Info className="w-6 h-6 text-yellow-500 mr-2" />
-              <h3 className="text-lg font-semibold">Withdrawal Warning</h3>
+              <h3 className="text-xl font-semibold">Withdraw PLASTIK Tokens</h3>
             </div>
-            <p className="text-gray-600 mb-6">
-              Some of your tokens are currently funding a roadmap. Retrieving
-              them now means you'll lose the potential 2% interest.
+            <input
+              type="number"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+              placeholder="Enter amount to withdraw"
+              className="w-full p-3 bg-white rounded-2xl shadow-md border border-gray-200 mb-4"
+            />
+            {/* Percentage Buttons */}
+            <div className="flex gap-2 mb-4">
+              {[25, 50, 75, 100].map((percent) => (
+                <button
+                  key={percent}
+                  type="button"
+                  className="flex-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium hover:bg-blue-200 transition"
+                  onClick={() => {
+                    if (data) {
+                      const value = Math.floor(
+                        Number(data.staked) * (percent / 100)
+                      );
+                      setWithdrawAmount(value.toString());
+                    }
+                  }}
+                >
+                  {percent}%
+                </button>
+              ))}
+            </div>
+            <p className="text-lg font-semibold text-gray-500 mb-4">
+              Total Plastik Lent:{" "}
+              {data ? data.staked.toLocaleString() : "Loading..."}
             </p>
             <div className="flex gap-4">
               <button
                 onClick={() => setShowWithdrawalWarning(false)}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="flex-1 px-4 py-2 bg-white rounded-2xl shadow-md border border-gray-200 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  handleWithdraw();
-                  setShowWithdrawalWarning(false);
-                }}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                onClick={handleWithdraw}
+                className="flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-2xl shadow-md border border-gray-200"
               >
-                Continue
+                Confirm
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Floating Lending Button */}
-      <div className="flex justify-center">
+      {/* Floating Lend Button */}
+      <div className="flex justify-center mt-6">
         <button
-          className="bg-[#082FB9] hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full transition mt-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full"
           onClick={() => setShowLendModal(true)}
         >
           Lend Tokens

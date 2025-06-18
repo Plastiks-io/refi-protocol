@@ -236,7 +236,7 @@ validateFundUSDM oldDat amt ctx =
 -- Main validator
 mkLenderValidator :: LenderDatum -> LenderAction -> ScriptContext -> Bool
 mkLenderValidator dat redeemer ctx =
-  trace "==== Starting validator execution ====" $
+  trace "=== Starting validator execution ===" $
   trace "Checking current datum" $
   trace "Validating admin PKHs" $
   trace "Checking totalPT and totalReward" $
@@ -252,10 +252,10 @@ mkLenderValidator dat redeemer ctx =
       trace "Action: Withdraw" $
       validateWithdraw dat amt ctx
     FundPlastikToEscrow amt -> 
-      trace "Action: FundPlastikToEscrow" $
+      trace "Action: Fund Plastik To Escrow" $
       validateFundPlastikToEscrow dat amt ctx
     FundUSDM amt -> 
-      trace "Action: FundUSDM" $
+      trace "Action: Fund USDM" $
       validateFundUSDM dat amt ctx
 
 -- Boilerplate for compilation
