@@ -1,117 +1,111 @@
+// test/user.test.ts
 import * as userController from "../src/controllers/user.controller.js";
+import { Lucid, TxComplete, TxSigned } from "lucid-cardano";
+import { Transaction } from "../src/models/transaction.model.js";
 import { jest } from "@jest/globals";
-import { Lucid, UTxO, Data, Constr, fromText, Tx } from "lucid-cardano";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-// Explicitly type fakeLucid as a partial Lucid instance with required methods
-const fakeLucid: Pick<
-  Lucid,
-  "utxosAt" | "wallet" | "provider" | "utils" | "selectWalletFromSeed" | "newTx"
-> = {
-  utxosAt: jest.fn<() => Promise<UTxO[]>>().mockResolvedValueOnce([]),
-  wallet: {
-    address: async () => "someAddress",
-  } as any, // Safe if only used in test
-  provider: {
-    getUtxosByOutRef: jest.fn<() => Promise<UTxO[]>>(),
-  } as any,
-  utils: {
-    getAddressDetails: () => ({
-      paymentCredential: {
-        hash: "b93e78824bcf5c34a62b2f573727b4bb8a1365ebd152bd6243ff8dc6",
-      },
-    }),
-    validatorToAddress: () => "fakeRefiAddress",
-    keyHashToCredential: () => ({
-      type: "Key",
-      hash: "mockKeyHash",
-    }),
-    credentialToAddress: () => "fakeAddress",
-  } as any,
-  selectWalletFromSeed: () => fakeLucid as Lucid,
-  newTx: jest.fn<() => Tx>(),
-};
-
 describe("User Controllers Tests", () => {
-  let req: any, res: any;
-  beforeEach(() => {
-    req = {
-      body: {},
-    };
+  let fakeLucid: Partial<Lucid>;
+  let req: any;
+  let res: any;
 
+  beforeEach(() => {
+    // Reset req/res
+    req = { body: {} };
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
     };
 
-    jest.clearAllMocks();
+    // 1) Stub out Lucid.new() → fakeLucid
+    fakeLucid = {
+      selectWalletFromSeed: jest.fn(),
+      newTx: jest.fn(),
+    };
+    jest.spyOn(Lucid, "new").mockResolvedValue(fakeLucid as Lucid);
+
+    // 2) Stub out Transaction.create so no DB errors
+    jest.spyOn(Transaction, "create").mockResolvedValue({} as any);
+
+    // 3) Silence console.error
     jest.spyOn(console, "error").mockImplementation(() => {});
-    jest.spyOn(Lucid, "new").mockResolvedValue(fakeLucid as unknown as Lucid);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
-  describe("sent PC token successfully", () => {
-    it("should send PC token successfully and return 200", async () => {
-      req.body = {
-        address: "someAddress",
-        amount: 1000,
-      };
-      const pcAssetId = process.env.PC_ASSET_ID! || "fakePcAssetId";
-      // Mock transaction flow
-      const tx = {
-        payToAddress: jest.fn().mockReturnThis(),
-        complete: jest.fn().mockReturnThis(),
-        sign: jest.fn().mockReturnThis(),
-        submit: jest.fn().mockResolvedValue("fakeTxHash" as unknown as never),
-      };
-      jest.spyOn(fakeLucid, "newTx").mockReturnValue(tx as unknown as Tx);
 
-      await userController.sentPC(req, res);
+  it("should return 400 if address or amount are missing", async () => {
+    // no req.body.address or amount
+    await userController.sentPC(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({
-        message: "Transaction successful",
-        txHash: "fakeTxHash",
-        success: true,
-      });
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Address and amount are required",
+      success: false,
+    });
+  });
+
+  it("should send PC token successfully and return 200", async () => {
+    req.body = { address: "addr1...", amount: 1000 };
+
+    // --- Build mock TxComplete with fee + sign chain ---
+    const mockTxComplete: Partial<TxComplete> = {
+      fee: 42n,
+      sign: jest.fn().mockReturnThis(),
+      complete: jest.fn().mockResolvedValue({
+        submit: jest.fn().mockResolvedValue("fakeTxHash"),
+      } as Partial<TxSigned>),
+    };
+
+    // Builder → complete() → mockTxComplete
+    const mockBuilder = {
+      payToAddress: jest.fn().mockReturnThis(),
+      complete: jest.fn().mockResolvedValue(mockTxComplete),
+    };
+    (fakeLucid!.newTx as jest.Mock).mockReturnValue(mockBuilder as any);
+
+    await userController.sentPC(req, res);
+
+    // Assert happy‑path response
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Transaction successful",
+      txHash: "fakeTxHash",
+      success: true,
     });
 
-    it("should return 400 if adress or amount is not found", async () => {
-      req.body = {};
-      await userController.sentPC(req, res);
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: "Address and amount are required",
-        success: false,
-      });
-    });
+    // Assert DB write saw the correct fee
+    expect(Transaction.create).toHaveBeenCalledWith(
+      expect.objectContaining({ txFee: mockTxComplete.fee })
+    );
+  });
 
-    it("should handle errors and return 500", async () => {
-      req.body = {
-        address: "someAddress",
-        amount: 1000,
-      };
-      // Mock transaction flow to throw an error
-      const tx = {
-        payToAddress: jest.fn().mockReturnThis(),
-        complete: jest.fn().mockReturnThis(),
-        sign: jest.fn().mockReturnThis(),
-        submit: jest
-          .fn()
-          .mockRejectedValue(
-            new Error("Transaction failed") as unknown as never
-          ),
-      };
-      jest.spyOn(fakeLucid, "newTx").mockReturnValue(tx as unknown as Tx);
-      await userController.sentPC(req, res);
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        message: "Transaction failed",
-        error: "Transaction failed",
-      });
+  it("should return 500 if submit() throws", async () => {
+    req.body = { address: "addr1...", amount: 1000 };
+
+    // Create a TxComplete whose .complete() succeeds, but whose .submit() fails
+    const mockTxComplete: Partial<TxComplete> = {
+      fee: 99n,
+      sign: jest.fn().mockReturnThis(),
+      complete: jest.fn().mockResolvedValue({
+        submit: jest.fn().mockRejectedValue(new Error("oops")),
+      } as Partial<TxSigned>),
+    };
+    const mockBuilder = {
+      payToAddress: jest.fn().mockReturnThis(),
+      complete: jest.fn().mockResolvedValue(mockTxComplete),
+    };
+    (fakeLucid!.newTx as jest.Mock).mockReturnValue(mockBuilder as any);
+
+    await userController.sentPC(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Transaction failed",
+      error: "oops",
     });
   });
 });

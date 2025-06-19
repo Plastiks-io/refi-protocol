@@ -238,7 +238,7 @@ mkLenderValidator :: LenderDatum -> LenderAction -> ScriptContext -> Bool
 mkLenderValidator dat redeemer ctx =
   trace "=== Starting validator execution ===" $
   trace "Checking current datum" $
-  trace "Validating admin PKHs" $
+  trace "Validating admins PKHs" $
   trace "Checking totalPT and totalReward" $
   trace "Verifying lenders data" $
   case redeemer of

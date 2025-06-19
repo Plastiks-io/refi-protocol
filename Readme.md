@@ -34,6 +34,8 @@ This repository includes the full **frontend**, **backend**, and **smart contrac
     - [Test Case for Releasing Funds](#test-case-for-releasing-funds)
   - [Assets Used in Preprod Network](#assets-used-in-preprod-network)
   - [Transaction Hash to Verify that USDM is Sent to the Pre Wallet](#transaction-hash-to-verify-that-usdm-is-sent-to-the-pre-wallet)
+- [Plastiks Lending Module](#plastiks-lending-module)
+  - [📸 Screenshots](#-screenshots-1)
 
 ---
 
@@ -205,3 +207,25 @@ The following asset IDs are used in the Preprod Cardano network:
 
 - **Link**
   `https://preprod.cardanoscan.io/transaction/d52d27538d8faead63f35bada8859eac3eb979e939a370a66b446ed456a42d91`
+
+# Plastiks Lending Module
+
+## 📸 Screenshots
+
+| Feature                            | Preview                                                                          |
+| ---------------------------------- | -------------------------------------------------------------------------------- |
+| Dashboard                          | ![Dashboard](./screenshots/Screenshot%20from%202025-06-19%2010-00-23.png)        |
+| Lend Tab                           | ![Lend](./screenshots/Screenshot%20from%202025-06-19%2011-59-27.png)             |
+| “Lend Plastik” Popup               | ![Popup](./screenshots/Screenshot%20from%202025-06-19%2011-59-38.png)            |
+| Plastik Payment                    | ![Payment](./screenshots/Screenshot%20from%202025-06-19%2011-59-48.png)          |
+| After Lending                      | ![After Lend](./screenshots/Screenshot%20from%202025-06-19%2012-01-21.png)       |
+| NFT Purchase                       | ![Buy NFT](./screenshots/Screenshot%20from%202025-06-19%2012-02-17.png)          |
+| Lender Receives Reward             | ![Reward](./screenshots/Screenshot%20from%202025-06-19%2012-03-42.png)           |
+| Withdraw Plastik                   | ![Withdraw](./screenshots/Screenshot%20from%202025-06-19%2012-03-52.png)         |
+| Withdraw Payment                   | ![Withdraw Payment](./screenshots/Screenshot%20from%202025-06-19%2012-04-08.png) |
+| 100% Withdrawal Also Claims Reward | ![Full Withdraw](./screenshots/Screenshot%20from%202025-06-19%2012-04-25.png)    |
+| “Redeem Rewards” Only              | ![Redeem](./screenshots/Screenshot%20from%202025-06-19%2012-04-46.png)           |
+| Admin: Missing Funds View          | ![Missing Funds](./screenshots/Screenshot%20from%202025-06-19%2012-05-34.png)    |
+| Admin Fund Popup                   | ![Admin Fund Popup](./screenshots/Screenshot%20from%202025-06-19%2012-05-46.png) |
+| Admin Payment Confirmation         | ![Admin Payment](./screenshots/Screenshot%20from%202025-06-19%2012-06-05.png)    |
+| USDM Funds Locked in ReFi Contract | ![Funds Locked](./screenshots/Screenshot%20from%202025-06-19%2012-06-47.png)     |

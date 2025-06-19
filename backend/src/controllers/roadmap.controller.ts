@@ -264,19 +264,27 @@ const updateRoadmap = async (req: Request, res: Response): Promise<void> => {
     const lenderRedeemer = Data.to(
       buildLenderAction({ type: "FundPlastikToEscrow", amount: needPT })
     );
+    // 1. Compute the *new* reward from this sale only:
     const precision = 1_000_000n;
     const rewardMicro = (BigInt(soldPlasticCredit) * precision * 2n) / 100n;
-    const totalReward = lender.totalReward + rewardMicro;
-    const updatedLenders: [string, [bigint, bigint]][] = lender.lenders.map(
-      ([pk, [bal, debt]]): [string, [bigint, bigint]] => [
-        pk,
-        [bal, (bal * totalReward) / lender.totalPT],
-      ]
+    // ▸ ΔR in “micro‑USDM” units
+
+    // 2. Distribute ΔR proportionally to existing stakes:
+    const updatedLenders = lender.lenders.map(
+      ([pk, [bal, oldDebt]]): [string, [bigint, bigint]] => {
+        const share =
+          lender.totalPT > 0n
+            ? (bal * rewardMicro) / lender.totalPT // bal/T_old * ΔR
+            : 0n;
+        return [pk, [bal, oldDebt + share]];
+      }
     );
+
+    // 3. Update your LenderDatum
     const newLenderDatum: LenderDatum = {
       adminsPkh: lender.adminsPkh,
-      totalPT: lender.totalPT,
-      totalReward,
+      totalPT: lender.totalPT, // stakes haven’t changed
+      totalReward: lender.totalReward + rewardMicro,
       lenders: updatedLenders,
     };
 

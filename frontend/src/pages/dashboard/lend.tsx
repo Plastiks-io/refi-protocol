@@ -224,7 +224,7 @@ export default function Lend() {
                   <td className="px-6 py-4 text-right text-sm text-gray-500">
                     <div className="flex items-center justify-end">
                       <DollarSign className="w-4 h-4 mr-1 text-[#082FB9]" />
-                      {roadmap.soldPlasticCredits} USDM
+                      {(roadmap.soldPlasticCredits * 2) / 100} USDM
                     </div>
                   </td>
                 </tr>

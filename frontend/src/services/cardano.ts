@@ -2,7 +2,7 @@ import { Roadmap } from "@/redux/roadmapSlice";
 import { BrowserWallet } from "@meshsdk/core";
 import { Constr, fromText, toText, Validator, WalletApi } from "lucid-cardano";
 import { Lucid, Blockfrost, getAddressDetails, Data } from "lucid-cardano";
-import type { Assets, Network, TxComplete, TxSigned } from "lucid-cardano";
+import type { Assets, Network } from "lucid-cardano";
 
 export interface NetworkConfig {
   projectId: string;
@@ -221,24 +221,23 @@ export class Cardano {
 
       // 6.6) Build “updatedLenders” array
       let lenderExists = false;
-      const updatedLenders: [string, [bigint, bigint]][] =
-        currentDatum.lenders.map(
-          ([pubKey, [balance, rewardDebt]]): [string, [bigint, bigint]] => {
-            if (pubKey === pkh) {
-              lenderExists = true;
-              const newBalance = balance + depositAmount;
-              const newRewardDebt = currentDatum.lenders[0][1][1]; // keep existing rewardDebt
-              return [pubKey, [newBalance, newRewardDebt]];
-            }
-            return [pubKey, [balance, rewardDebt]];
+      const updatedLenders = currentDatum.lenders.map(
+        ([pubKey, [balance, rewardDebt]]): [string, [bigint, bigint]] => {
+          console.log(pubKey + "|| " + pkh);
+
+          if (pubKey === pkh) {
+            // 1) New balance = old + deposit
+            const newBalance = balance + depositAmount;
+            lenderExists = true;
+            return [pubKey, [newBalance, rewardDebt]];
           }
-        );
+          return [pubKey, [balance, rewardDebt]];
+        }
+      );
 
       // If the depositor was not in the list, append them
       if (!lenderExists) {
-        const newBalance = depositAmount;
-        const newRewardDebt = 0n;
-        updatedLenders.push([pkh, [newBalance, newRewardDebt]]);
+        updatedLenders.push([pkh, [depositAmount, 0n]]);
       }
 
       // 6.7) Build the new higher‐level datum (keeping adminPkh unchanged)
@@ -355,9 +354,7 @@ export class Cardano {
           ): [string, [bigint, bigint]] => {
             if (index === userLenderIndex) {
               const newBalance = balance - withdrawAmount;
-              // Recalculate reward debt for new balance
-              const newRewardDebt = 0n;
-              return [pubKey, [newBalance, newRewardDebt]];
+              return [pubKey, [newBalance, rewardDebt]];
             }
             return [pubKey, [balance, rewardDebt]];
           }

@@ -42,7 +42,6 @@ const sentPC = async (req: Request, res: Response) => {
       .complete();
 
     const txFee = tx.fee;
-    console.log(txFee);
     const signedTx = await tx.sign().complete();
     const txHash = await signedTx.submit();
 

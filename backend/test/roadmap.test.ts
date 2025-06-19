@@ -1,4 +1,5 @@
 import * as roadmapController from "../src/controllers/roadmap.controller.js";
+import * as StakeRewardController from "../src/controllers/stakeReward.controller.js";
 import { jest } from "@jest/globals";
 import CompletedRoadmap from "../src/models/completedRoadmap.model.js";
 import { Lucid, UTxO, Data, Constr, fromText, Tx } from "lucid-cardano";
@@ -50,6 +51,11 @@ describe("Roadmap Controllers Tests", () => {
     jest.clearAllMocks();
     jest.spyOn(console, "error").mockImplementation(() => {});
     jest.spyOn(Lucid, "new").mockResolvedValue(fakeLucid as unknown as Lucid);
+    jest
+      .spyOn(StakeRewardController, "getPubKeyHash")
+      .mockResolvedValue(
+        "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+      );
   });
 
   afterEach(() => {

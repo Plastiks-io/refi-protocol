@@ -17,3 +17,6 @@
 /smart-contract/build/
 /smart-contract/.env
 /smart-contract/cache/
+
+# Ignore .vscode file
+/.vscode/
