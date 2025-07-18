@@ -55,6 +55,31 @@ const roadmapSlice = createSlice({
         (r) => r.roadmapId !== action.payload
       );
     },
+
+    updateSoldCredits: (
+      state,
+      action: PayloadAction<{ roadmapId: string; soldPlasticCredit: number }>
+    ) => {
+      const roadmap = state.roadmaps.find(
+        (r) => r.roadmapId === action.payload.roadmapId
+      );
+      if (roadmap) {
+        roadmap.soldPlasticCredits += action.payload.soldPlasticCredit;
+      }
+    },
+
+    upsertRoadmap: (state, action: PayloadAction<Roadmap>) => {
+      const idx = state.roadmaps.findIndex(
+        (r) => r.roadmapId === action.payload.roadmapId
+      );
+      if (idx >= 0) {
+        // replace the old roadmap object wholesale
+        state.roadmaps[idx] = action.payload;
+      } else {
+        // new roadmap
+        state.roadmaps.push(action.payload);
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -73,5 +98,6 @@ const roadmapSlice = createSlice({
   },
 });
 
-export const { addRoadmap, removeRoadmap } = roadmapSlice.actions;
+export const { addRoadmap, removeRoadmap, updateSoldCredits, upsertRoadmap } =
+  roadmapSlice.actions;
 export default roadmapSlice.reducer;

@@ -13,6 +13,8 @@ export type ProjectDatum = {
   recoveredPlastic: number;
   createdAt: string;
   status: string;
+  fundsMissing: string;
+  fundsDistributed: string;
 };
 
 export type InitializeRoadmapRequest = {

@@ -437,8 +437,11 @@ export class Cardano {
       const signed = await txComplete.sign().complete();
       const txHash = await signed.submit();
       return txHash;
-    } catch (error) {
+    } catch (error: Error | any) {
       console.error("Error initializing Lucid:", error);
+      toast.error("Failed to Withdraw plastik token " + error.message, {
+        closeButton: true,
+      });
       throw new Error("Failed to initialize Lucid for withdrawal");
     }
   };

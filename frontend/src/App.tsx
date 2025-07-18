@@ -17,7 +17,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch } from "./redux/store";
 import { BrowserWallet } from "@meshsdk/core";
 import { RootState } from "./redux/store";
-import { fetchRoadmaps } from "./redux/roadmapSlice";
+import { fetchRoadmaps, Roadmap, upsertRoadmap } from "./redux/roadmapSlice";
 import { fetchCompletedRoadmaps } from "./redux/completedRoadmapSlice";
 import { fetchArchivedRoadmaps } from "./redux/archivedRoadmapSlice";
 import { fetchTransactions } from "./redux/TransactionSlice";
@@ -27,6 +27,8 @@ import Lend from "@/pages/dashboard/lend";
 import PrivateLendRoute from "./components/PrivateLendRoute";
 import { CardanoProvider } from "@/contexts/cardanoContexts";
 export const WalletContext = React.createContext<BrowserWallet | null>(null);
+
+import { socket } from "./socket"; // Socket.IO client instance
 
 function App() {
   const { walletId } = useSelector((state: RootState) => state.wallet);
@@ -78,6 +80,15 @@ function App() {
       dispatch(fetchAdmins());
     }
     dispatch(fetchTransactions({ page: 1, perPage }));
+
+    // ✅ Socket.IO: listen for roadmap updates
+    socket.on("roadmapUpdated", (fullRoadmap: Roadmap) => {
+      dispatch(upsertRoadmap(fullRoadmap));
+    });
+
+    return () => {
+      socket.off("roadmapUpdated");
+    };
   }, [walletId, dispatch]);
 
   return (

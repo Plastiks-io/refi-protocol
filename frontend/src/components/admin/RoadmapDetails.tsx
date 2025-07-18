@@ -147,7 +147,7 @@ const RoadmapDetails: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
       return;
     }
     // check if funds are distributed before archiving
-    if (roadmap.progress === 100 && Number(roadmap.fundsMissing) > 0) {
+    if (Number(roadmap.fundsMissing) > 0) {
       toast.error(
         "Funds cannot be archived when the progress is 100% or all funds are sent to escrow.",
         {

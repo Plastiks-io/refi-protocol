@@ -75,14 +75,6 @@ export default function Lend() {
       setWithdrawAmount("");
     } catch (error) {
       console.error("Error withdrawing tokens:", error);
-      toast.error(
-        `Failed to withdraw tokens: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-        {
-          closeButton: true,
-        }
-      );
     }
   };
 

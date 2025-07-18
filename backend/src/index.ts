@@ -1,6 +1,9 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import http from "http";
+import { Server as IOServer } from "socket.io";
+import { initIO } from "./utils/socket.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -37,8 +40,22 @@ export async function bootstrap(): Promise<void> {
   }
 
   // 2. Create Express app
-  const app = express();
+  // const app = express();
   const PORT = Number(process.env.PORT) || 8000;
+
+  const app = express();
+  const server = http.createServer(app);
+  const io = new IOServer(server, {
+    cors: {
+      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
+  });
+
+  // Make `io` available in your routes/workers
+  app.set("io", io);
+  initIO(io);
 
   app.use(
     cors({
@@ -61,7 +78,7 @@ export async function bootstrap(): Promise<void> {
 
   // 4. Start server if run directly
   if (process.argv[1] === __filename) {
-    app.listen(PORT, () =>
+    server.listen(PORT, () =>
       console.log(`🚀 Server listening on http://localhost:${PORT}`)
     );
   }

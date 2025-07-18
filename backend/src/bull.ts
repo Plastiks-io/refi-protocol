@@ -2,6 +2,7 @@
 import { Queue, Worker, Job } from "bullmq";
 import { Redis } from "ioredis";
 import { Cardano } from "./utils/cardano.js";
+import { getIO } from "./utils/socket.js";
 
 export interface BuyNftJob {
   txHash: string;
@@ -59,6 +60,12 @@ new Worker<BuyNftJob>(
     );
     const txConfirmed3 = await cardano.checkTxConfirmed(sentPcTx);
     if (!txConfirmed3) throw new Error("Tx3 not confirmed");
+
+    const updatedDatum = await cardano.getRoadmapDatum(preId, roadmapId);
+
+    // **EMIT THE SOCKET EVENT**
+    const io = getIO();
+    io.emit("roadmapUpdated", updatedDatum);
 
     return { roadmapTx, sentPcTx };
   },

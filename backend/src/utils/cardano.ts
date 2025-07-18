@@ -8,6 +8,7 @@ import {
   Constr,
   Network,
   Assets,
+  UTxO,
 } from "lucid-cardano";
 import { Transaction, TransactionType } from "../models/transaction.model.js";
 import {
@@ -18,6 +19,7 @@ import {
   parseRoadmapDatum,
 } from "../controllers/stakeReward.controller.js";
 import { LenderDatum } from "../types/stake.reward.types.js";
+import { ProjectDatum } from "../types/roadmap.types.js";
 
 export interface NetworkConfig {
   projectId: string;
@@ -376,5 +378,72 @@ export class Cardano {
     const signed = await tx.sign().complete();
     const hash = await signed.submit();
     return hash;
+  }
+
+  public async getRoadmapDatum(
+    preId: string,
+    roadmapId: string
+  ): Promise<ProjectDatum> {
+    const lucid = this.getLucid();
+    const utxos: UTxO[] = await lucid.utxosAt(this.refiContractAddress);
+
+    // 1. Find the UTxO whose datum’s roadmapId field matches
+    for (const utxo of utxos) {
+      if (!utxo.datum) continue;
+
+      const decoded = Data.from(utxo.datum) as Constr<Data>;
+      const fields = decoded.fields;
+
+      // Field layout (0: preId, 1: roadmapId, 2: name, 3: desc, 4: progress, …)
+      const thisRoadmapId = toText(fields[1] as string);
+      if (thisRoadmapId !== roadmapId) continue;
+
+      // 2. Extract and convert each field
+      const rawProgress = Number(fields[4] as bigint);
+      const progress = rawProgress > 0 ? rawProgress / 100 : 0;
+
+      const paymentCred = lucid.utils.keyHashToCredential(fields[6] as string);
+      const stakeCred = lucid.utils.keyHashToCredential(fields[7] as string);
+      const preAddress = lucid.utils.credentialToAddress(
+        paymentCred,
+        stakeCred
+      );
+
+      const precision = 1_000_000n;
+      const ptUnit = process.env.PLASTIC_TOKEN!;
+      const fundsMissing = (
+        ((utxo.assets[ptUnit] ?? 0n) * precision) /
+        100n
+      ).toString();
+
+      const usdmUnit = process.env.USDM_TOKEN!;
+      const fundsDistributed = (
+        (utxo.assets[usdmUnit] ?? 0n) / precision
+      ).toString();
+
+      // 3. Build and return the ProjectDatum
+      return {
+        preId: toText(fields[0] as string),
+        roadmapId: thisRoadmapId,
+        roadmapName: toText(fields[2] as string),
+        roadmapDescription: toText(fields[3] as string),
+        progress,
+        preAddress,
+        totalPlasticCredits: Number(fields[8] as bigint),
+        soldPlasticCredits: Number(fields[9] as bigint),
+        totalPlasticTokens: Number(fields[10] as bigint),
+        sentPlasticTokens: Number(fields[11] as bigint),
+        totalPlastic: Number(fields[12] as bigint),
+        recoveredPlastic: Number(fields[13] as bigint),
+        createdAt: toText(fields[14] as string),
+        status: "active",
+        fundsMissing,
+        fundsDistributed,
+      };
+    }
+
+    throw new Error(
+      `Roadmap ${roadmapId} not found at ${this.refiContractAddress}`
+    );
   }
 }
