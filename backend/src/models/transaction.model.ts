@@ -6,6 +6,9 @@ import sequelize from "../db/config.js";
 // Enum for transaction type
 export enum TransactionType {
   Sold = "creditSale",
+  Roadmap = "roadmapCompletion",
+  Token = "tokenReturn",
+  USDM = "usdmReleased",
   Transfer = "fundTransfer",
 }
 
@@ -15,6 +18,7 @@ export interface TransactionAttributes {
   txDate: Date;
   txFee: number;
   amount: number;
+  roadmapId: string;
   assetId: string;
   hash: string;
   type: TransactionType;
@@ -34,6 +38,7 @@ export class Transaction
   declare txDate: Date;
   declare txFee: number;
   declare amount: number;
+  declare roadmapId: string;
   declare assetId: string;
   declare hash: string;
   declare type: TransactionType;
@@ -58,6 +63,10 @@ Transaction.init(
     },
     amount: {
       type: DataTypes.FLOAT,
+      allowNull: false,
+    },
+    roadmapId: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
     assetId: {

@@ -67,8 +67,6 @@ const initializeRoadmap = async (
       prePkh,
       preSkh,
       totalPlasticCredits,
-      totalPlasticTokens,
-      totalPlastic,
     }: InitializeRoadmapRequest = req.body;
 
     if (
@@ -78,9 +76,7 @@ const initializeRoadmap = async (
       !roadmapDescription ||
       !prePkh ||
       !preSkh ||
-      !totalPlasticCredits ||
-      !totalPlasticTokens ||
-      !totalPlastic
+      !totalPlasticCredits
     ) {
       res.status(400).json({ error: "Missing required fields" });
       return;
@@ -135,7 +131,12 @@ const initializeRoadmap = async (
       });
       return;
     }
+    // Total plastik token will be 100 * totalPlasticCredits
+    const totalPlasticTokens = totalPlasticCredits * 100;
+    // Total Plastic to recovered = Total Plastik credit
+    const totalPlastic = totalPlasticCredits;
 
+    // Datum to be locked for the particular roadmap
     const datumToLock = new Constr(0, [
       fromText(preId || ""),
       fromText(roadmapId || ""),
@@ -188,171 +189,172 @@ const initializeRoadmap = async (
   }
 };
 
-const updateRoadmap = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { preId, roadmapId, soldPlasticCredit }: UpdateRoadmapRequest =
-      req.body;
-    const lucid = await initializeLucid();
-    const adminSeed = process.env.ADMIN_SEED!;
-    lucid.selectWalletFromSeed(adminSeed);
-    const adminAddress = await lucid.wallet.address();
+// const updateRoadmap = async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { preId, roadmapId, soldPlasticCredit }: UpdateRoadmapRequest =
+//       req.body;
+//     const lucid = await initializeLucid();
+//     const adminSeed = process.env.ADMIN_SEED!;
+//     lucid.selectWalletFromSeed(adminSeed);
+//     const adminAddress = await lucid.wallet.address();
 
-    // Find matching UTXO at refi contract
-    const refiContractAddress = lucid.utils.validatorToAddress(refiValidator);
-    const utxos = await lucid.utxosAt(refiContractAddress);
-    const matchedUtxo = utxos.find((u) => {
-      if (!u.datum) return false;
-      const d = Data.from(u.datum) as Constr<Data>;
-      return (
-        toText(d.fields[0] as string) === preId &&
-        toText(d.fields[1] as string) === roadmapId
-      );
-    });
-    if (!matchedUtxo?.datum) throw new Error("No matching roadmap UTxO");
+//     // Find matching UTXO at refi contract
+//     const refiContractAddress = lucid.utils.validatorToAddress(refiValidator);
+//     const utxos = await lucid.utxosAt(refiContractAddress);
+//     const matchedUtxo = utxos.find((u) => {
+//       if (!u.datum) return false;
+//       const d = Data.from(u.datum) as Constr<Data>;
+//       return (
+//         toText(d.fields[0] as string) === preId &&
+//         toText(d.fields[1] as string) === roadmapId
+//       );
+//     });
+//     if (!matchedUtxo?.datum) throw new Error("No matching roadmap UTxO");
 
-    const old = parseRoadmapDatum(Data.from(matchedUtxo.datum));
-    const newSold = old.soldPlasticCredits + BigInt(soldPlasticCredit);
-    const progress = (newSold * 10000n) / old.totalPlasticCredits;
-    const newSent = (progress * old.totalPlasticTokens) / 10000n;
-    const recovered = (progress * old.totalPlastic) / 10000n;
-    const updatedDatum = new Constr(0, [
-      fromText(old.preId),
-      fromText(old.roadmapId),
-      fromText(old.roadmapName),
-      fromText(old.roadmapDescription),
-      BigInt(progress),
-      old.adminsPkh,
-      old.prePkh,
-      old.preSkh,
-      BigInt(old.totalPlasticCredits),
-      BigInt(newSold),
-      BigInt(old.totalPlasticTokens),
-      BigInt(newSent),
-      BigInt(old.totalPlastic),
-      BigInt(recovered),
-      fromText(old.createdAt),
-    ]);
+//     const old = parseRoadmapDatum(Data.from(matchedUtxo.datum));
+//     const newSold = old.soldPlasticCredits + BigInt(soldPlasticCredit);
+//     const progress = (newSold * 10000n) / old.totalPlasticCredits;
+//     const newSent = (progress * old.totalPlasticTokens) / 10000n;
+//     const recovered = (progress * old.totalPlastic) / 10000n;
+//     const updatedDatum = new Constr(0, [
+//       fromText(old.preId),
+//       fromText(old.roadmapId),
+//       fromText(old.roadmapName),
+//       fromText(old.roadmapDescription),
+//       BigInt(progress),
+//       old.adminsPkh,
+//       old.prePkh,
+//       old.preSkh,
+//       BigInt(old.totalPlasticCredits),
+//       BigInt(newSold),
+//       BigInt(old.totalPlasticTokens),
+//       BigInt(newSent),
+//       BigInt(old.totalPlastic),
+//       BigInt(recovered),
+//       fromText(old.createdAt),
+//     ]);
 
-    // Prepare reward contract UTxO
-    const stakeAddr = lucid.utils.validatorToAddress(stakeRewardValidator);
-    const stakeUtxos = await lucid.utxosAt(stakeAddr);
-    if (stakeUtxos.length === 0) throw new Error("No stake UTxOs found");
-    const stakeUtxo = stakeUtxos[0];
-    if (!stakeUtxo.datum) throw new Error("Missing stake datum");
-    const lender = parseLenderDatum(Data.from(stakeUtxo.datum));
+//     // Prepare reward contract UTxO
+//     const stakeAddr = lucid.utils.validatorToAddress(stakeRewardValidator);
+//     const stakeUtxos = await lucid.utxosAt(stakeAddr);
+//     if (stakeUtxos.length === 0) throw new Error("No stake UTxOs found");
+//     const stakeUtxo = stakeUtxos[0];
+//     if (!stakeUtxo.datum) throw new Error("Missing stake datum");
+//     const lender = parseLenderDatum(Data.from(stakeUtxo.datum));
 
-    const adminPkh = await getPubKeyHash(lucid);
-    if (!lender.adminsPkh.includes(adminPkh)) throw new Error("Unauthorized");
+//     const adminPkh = await getPubKeyHash(lucid);
+//     if (!lender.adminsPkh.includes(adminPkh)) throw new Error("Unauthorized");
 
-    const ptUnit = process.env.PLASTIC_TOKEN!;
-    const needPT = BigInt(soldPlasticCredit) * 80n;
-    // sum PT in this single UTxO
-    const contractPT = stakeUtxo.assets[ptUnit] || 0n;
+//     const ptUnit = process.env.PLASTIC_TOKEN!;
+//     const needPT = BigInt(soldPlasticCredit) * 80n;
+//     // sum PT in this single UTxO
+//     const contractPT = stakeUtxo.assets[ptUnit] || 0n;
 
-    // Collect any extra from admin if contractPT insufficient
-    let extraAdminUtxo;
-    if (contractPT < needPT) {
-      const adminUtxos = await lucid.utxosAt(adminAddress);
-      extraAdminUtxo = adminUtxos.find(
-        (u) => (u.assets[ptUnit] || 0n) >= needPT - contractPT
-      );
-      if (!extraAdminUtxo) throw new Error("Admin has insufficient PT");
-    }
+//     // Collect any extra from admin if contractPT insufficient
+//     let extraAdminUtxo;
+//     if (contractPT < needPT) {
+//       const adminUtxos = await lucid.utxosAt(adminAddress);
+//       extraAdminUtxo = adminUtxos.find(
+//         (u) => (u.assets[ptUnit] || 0n) >= needPT - contractPT
+//       );
+//       if (!extraAdminUtxo) throw new Error("Admin has insufficient PT");
+//     }
 
-    // Build redeemers and new lender datum
-    const refiRedeemer = Data.to(new Constr(0, [progress]));
-    const lenderRedeemer = Data.to(
-      buildLenderAction({ type: "FundPlastikToEscrow", amount: needPT })
-    );
-    // 1. Compute the *new* reward from this sale only:
-    const precision = 1_000_000n;
-    const rewardMicro = (BigInt(soldPlasticCredit) * precision * 2n) / 100n;
-    // ▸ ΔR in “micro‑USDM” units
+//     // Build redeemers and new lender datum
+//     const refiRedeemer = Data.to(new Constr(0, [progress]));
+//     const lenderRedeemer = Data.to(
+//       buildLenderAction({ type: "FundPlastikToEscrow", amount: needPT })
+//     );
+//     // 1. Compute the *new* reward from this sale only:
+//     const precision = 1_000_000n;
+//     const rewardMicro = (BigInt(soldPlasticCredit) * precision * 2n) / 100n;
+//     // ▸ ΔR in “micro‑USDM” units
 
-    // 2. Distribute ΔR proportionally to existing stakes:
-    const updatedLenders = lender.lenders.map(
-      ([pk, [bal, oldDebt]]): [string, [bigint, bigint]] => {
-        const share =
-          lender.totalPT > 0n
-            ? (bal * rewardMicro) / lender.totalPT // bal/T_old * ΔR
-            : 0n;
-        return [pk, [bal, oldDebt + share]];
-      }
-    );
+//     // 2. Distribute ΔR proportionally to existing stakes:
+//     const updatedLenders = lender.lenders.map(
+//       ([pk, [bal, oldDebt]]): [string, [bigint, bigint]] => {
+//         const share =
+//           lender.totalPT > 0n
+//             ? (bal * rewardMicro) / lender.totalPT // bal/T_old * ΔR
+//             : 0n;
+//         return [pk, [bal, oldDebt + share]];
+//       }
+//     );
 
-    // 3. Update your LenderDatum
-    const newLenderDatum: LenderDatum = {
-      adminsPkh: lender.adminsPkh,
-      totalPT: lender.totalPT, // stakes haven’t changed
-      totalReward: lender.totalReward + rewardMicro,
-      lenders: updatedLenders,
-    };
+//     // 3. Update your LenderDatum
+//     const newLenderDatum: LenderDatum = {
+//       adminsPkh: lender.adminsPkh,
+//       totalPT: lender.totalPT, // stakes haven’t changed
+//       totalReward: lender.totalReward + rewardMicro,
+//       lenders: updatedLenders,
+//     };
 
-    const usdmAssetUnit: string = process.env.USDM_TOKEN!;
-    // Build assets for refi and stake outputs
-    const refiAssets: Assets = {
-      lovelace: matchedUtxo.assets.lovelace,
-      [ptUnit]: (matchedUtxo.assets[ptUnit] || 0n) + needPT,
-    };
-    if (matchedUtxo.assets[usdmAssetUnit]) {
-      refiAssets[usdmAssetUnit] = matchedUtxo.assets[usdmAssetUnit];
-    }
+//     const usdmAssetUnit: string = process.env.USDM_TOKEN!;
+//     // Build assets for refi and stake outputs
+//     const refiAssets: Assets = {
+//       lovelace: matchedUtxo.assets.lovelace,
+//       [ptUnit]: (matchedUtxo.assets[ptUnit] || 0n) + needPT,
+//     };
+//     if (matchedUtxo.assets[usdmAssetUnit]) {
+//       refiAssets[usdmAssetUnit] = matchedUtxo.assets[usdmAssetUnit];
+//     }
 
-    const stakeAssets: Assets = {
-      [usdmAssetUnit]: (stakeUtxo.assets[usdmAssetUnit] || 0n) + rewardMicro,
-    };
-    if (stakeUtxo.assets[ptUnit] - needPT >= 0n) {
-      stakeAssets[ptUnit] = (stakeUtxo.assets[ptUnit] || 0n) - needPT;
-    }
-    // console.log(stakeAssets);
+//     const stakeAssets: Assets = {
+//       [usdmAssetUnit]: (stakeUtxo.assets[usdmAssetUnit] || 0n) + rewardMicro,
+//     };
+//     if (stakeUtxo.assets[ptUnit] - needPT >= 0n) {
+//       stakeAssets[ptUnit] = (stakeUtxo.assets[ptUnit] || 0n) - needPT;
+//     }
+//     // console.log(stakeAssets);
 
-    // Build Tx
-    let txBuilder = lucid
-      .newTx()
-      // refi update
-      .collectFrom([matchedUtxo], refiRedeemer)
-      .attachSpendingValidator(refiValidator)
-      .payToContract(
-        lucid.utils.validatorToAddress(refiValidator),
-        { inline: Data.to(updatedDatum) },
-        refiAssets
-      )
-      // stake payout
-      .collectFrom([stakeUtxo], lenderRedeemer);
+//     // Build Tx
+//     let txBuilder = lucid
+//       .newTx()
+//       // refi update
+//       .collectFrom([matchedUtxo], refiRedeemer)
+//       .attachSpendingValidator(refiValidator)
+//       .payToContract(
+//         lucid.utils.validatorToAddress(refiValidator),
+//         { inline: Data.to(updatedDatum) },
+//         refiAssets
+//       )
+//       // stake payout
+//       .collectFrom([stakeUtxo], lenderRedeemer);
 
-    // if extra admin funds needed, collect from admin UTxO
-    if (extraAdminUtxo) {
-      txBuilder = txBuilder.collectFrom([extraAdminUtxo]);
-    }
+//     // if extra admin funds needed, collect from admin UTxO
+//     if (extraAdminUtxo) {
+//       txBuilder = txBuilder.collectFrom([extraAdminUtxo]);
+//     }
 
-    txBuilder = txBuilder
-      .attachSpendingValidator(stakeRewardValidator)
-      .payToContract(
-        stakeAddr,
-        { inline: Data.to(buildLenderDatum(newLenderDatum)) },
-        stakeAssets
-      )
-      .addSigner(adminAddress);
+//     txBuilder = txBuilder
+//       .attachSpendingValidator(stakeRewardValidator)
+//       .payToContract(
+//         stakeAddr,
+//         { inline: Data.to(buildLenderDatum(newLenderDatum)) },
+//         stakeAssets
+//       )
+//       .addSigner(adminAddress);
 
-    const tx = await txBuilder.complete();
-    const signed = await tx.sign().complete();
-    const hash = await signed.submit();
+//     const tx = await txBuilder.complete();
+//     const signed = await tx.sign().complete();
+//     const hash = await signed.submit();
+//     ``;
 
-    res.status(200).json({
-      message: "Roadmap updated",
-      txHash: hash,
-      newProgress: Number(progress) / 100,
-      success: true,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: "Failed to update roadmap",
-      success: false,
-      error: err instanceof Error ? err.message : err,
-    });
-  }
-};
+//     res.status(200).json({
+//       message: "Roadmap updated",
+//       txHash: hash,
+//       newProgress: Number(progress) / 100,
+//       success: true,
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({
+//       message: "Failed to update roadmap",
+//       success: false,
+//       error: err instanceof Error ? err.message : err,
+//     });
+//   }
+// };
 
 const getAllActiveRoadmaps = async (
   req: Request,
@@ -824,7 +826,7 @@ const deleteArchivedRoadmap = async (req: Request, res: Response) => {
 export {
   initializeRoadmap,
   getAllActiveRoadmaps,
-  updateRoadmap,
+  // updateRoadmap,
   saveRoadmap,
   queryTransaction,
   queryAddressHistory,

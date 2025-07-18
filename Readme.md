@@ -212,20 +212,22 @@ The following asset IDs are used in the Preprod Cardano network:
 
 ## 📸 Screenshots
 
-| Feature                            | Preview                                                                          |
-| ---------------------------------- | -------------------------------------------------------------------------------- |
-| Dashboard                          | ![Dashboard](./screenshots/Screenshot%20from%202025-06-19%2010-00-23.png)        |
-| Lend Tab                           | ![Lend](./screenshots/Screenshot%20from%202025-06-19%2011-59-27.png)             |
-| “Lend Plastik” Popup               | ![Popup](./screenshots/Screenshot%20from%202025-06-19%2011-59-38.png)            |
-| Plastik Payment                    | ![Payment](./screenshots/Screenshot%20from%202025-06-19%2011-59-48.png)          |
-| After Lending                      | ![After Lend](./screenshots/Screenshot%20from%202025-06-19%2012-01-21.png)       |
-| NFT Purchase                       | ![Buy NFT](./screenshots/Screenshot%20from%202025-06-19%2012-02-17.png)          |
-| Lender Receives Reward             | ![Reward](./screenshots/Screenshot%20from%202025-06-19%2012-03-42.png)           |
-| Withdraw Plastik                   | ![Withdraw](./screenshots/Screenshot%20from%202025-06-19%2012-03-52.png)         |
-| Withdraw Payment                   | ![Withdraw Payment](./screenshots/Screenshot%20from%202025-06-19%2012-04-08.png) |
-| 100% Withdrawal Also Claims Reward | ![Full Withdraw](./screenshots/Screenshot%20from%202025-06-19%2012-04-25.png)    |
-| “Redeem Rewards” Only              | ![Redeem](./screenshots/Screenshot%20from%202025-06-19%2012-04-46.png)           |
-| Admin: Missing Funds View          | ![Missing Funds](./screenshots/Screenshot%20from%202025-06-19%2012-05-34.png)    |
-| Admin Fund Popup                   | ![Admin Fund Popup](./screenshots/Screenshot%20from%202025-06-19%2012-05-46.png) |
-| Admin Payment Confirmation         | ![Admin Payment](./screenshots/Screenshot%20from%202025-06-19%2012-06-05.png)    |
-| USDM Funds Locked in ReFi Contract | ![Funds Locked](./screenshots/Screenshot%20from%202025-06-19%2012-06-47.png)     |
+| Feature                                                                          | Preview                                                                          |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Dashboard                                                                        | ![Dashboard](./screenshots/Screenshot%20from%202025-06-19%2010-00-23.png)        |
+| Lend Tab                                                                         | ![Lend](./screenshots/Screenshot%20from%202025-06-19%2011-59-27.png)             |
+| “Lend Plastik” Popup                                                             | ![Popup](./screenshots/Screenshot%20from%202025-06-19%2011-59-38.png)            |
+| Plastik Payment                                                                  | ![Payment](./screenshots/Screenshot%20from%202025-06-19%2011-59-48.png)          |
+| After Lending                                                                    | ![After Lend](./screenshots/Screenshot%20from%202025-06-19%2012-01-21.png)       |
+| NFT Purchase                                                                     | ![Buy NFT](./screenshots/Screenshot%20from%202025-06-19%2012-02-17.png)          |
+| Lender Receives Reward                                                           | ![Reward](./screenshots/Screenshot%20from%202025-06-19%2012-03-42.png)           |
+| Withdraw Plastik                                                                 | ![Withdraw](./screenshots/Screenshot%20from%202025-06-19%2012-03-52.png)         |
+| Withdraw Payment                                                                 | ![Withdraw Payment](./screenshots/Screenshot%20from%202025-06-19%2012-04-08.png) |
+| 100% Withdrawal Also Claims Reward                                               | ![Full Withdraw](./screenshots/Screenshot%20from%202025-06-19%2012-04-25.png)    |
+| “Redeem Rewards” Only                                                            | ![Redeem](./screenshots/Screenshot%20from%202025-06-19%2012-04-46.png)           |
+| Admin: Missing Funds View                                                        | ![Missing Funds](./screenshots/Screenshot%20from%202025-06-19%2012-05-34.png)    |
+| Admin Fund Popup                                                                 | ![Admin Fund Popup](./screenshots/Screenshot%20from%202025-06-19%2012-05-46.png) |
+| Admin Payment Confirmation                                                       | ![Admin Payment](./screenshots/Screenshot%20from%202025-06-19%2012-06-05.png)    |
+| USDM Funds Locked in ReFi Contract                                               | ![Funds Locked](./screenshots/Screenshot%20from%202025-06-19%2012-06-47.png)     |
+| Once Roadmap Completes and funds locked in escrow released button will be active | ![Release Funds](./screenshots/Screenshot%20from%202025-06-21%2014-08-24.png)    |
+| Admin Released funds popup                                                       | ![Admin Released](./screenshots/Screenshot%20from%202025-06-21%2014-09-55.png)   |

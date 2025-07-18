@@ -23,8 +23,6 @@ export type InitializeRoadmapRequest = {
   prePkh: string;
   preSkh: string;
   totalPlasticCredits: number;
-  totalPlasticTokens: number;
-  totalPlastic: number;
 };
 
 export type UpdateRoadmapRequest = {

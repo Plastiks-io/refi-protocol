@@ -8,6 +8,8 @@ import { DownArrow } from "@/assets/icons";
 import CheckboxFilterList, {
   FilterOption,
 } from "@/components/CheckboxFilterList";
+import { Transaction } from "@/redux/TransactionSlice";
+import TransactionList from "@/components/TransactionList";
 
 const filterOptions: FilterOption[] = [
   { id: "active", label: "In Progress" },
@@ -19,7 +21,10 @@ const filterOptions: FilterOption[] = [
   { id: "lessKgs", label: "Less Kgs" },
 ];
 
-export default function AdminPage() {
+interface RoadmapDetailsProps {
+  transactions: Transaction[]; // Define the transactions prop here
+}
+const AdminPage: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
   // selectors for active, completed
   const {
     roadmaps: activeRoadmaps,
@@ -159,15 +164,9 @@ export default function AdminPage() {
           </div>
         )}
       </div>
-
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Transaction History</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Below is a record of recent transactions, providing details about key
-          activities and their timestamps for better tracking and transparency.
-        </p>
-        {/* Transaction list could also go here */}
-      </div>
+      <TransactionList transactions={transactions} />
     </div>
   );
-}
+};
+
+export default AdminPage;

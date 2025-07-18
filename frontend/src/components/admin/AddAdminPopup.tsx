@@ -37,7 +37,9 @@ const AddAdminPopup: React.FC<AddAdminPopupProps> = ({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isValidCardanoAddress(walletInput)) {
-      toast.error("Invalid Cardano address");
+      toast.error("Invalid Cardano address", {
+        closeButton: true,
+      });
       setWalletInput("");
       return;
     }
@@ -58,14 +60,20 @@ const AddAdminPopup: React.FC<AddAdminPopupProps> = ({
         // also remove from redux state
         dispatch(addAdmin(response.data.admin));
         console.log(response.data);
-        toast.success("Admin added successfully");
+        toast.success("Admin added successfully", {
+          closeButton: true,
+        });
       } catch (error) {
-        toast.error("Failed to add admin");
+        toast.error("Failed to add admin", {
+          closeButton: true,
+        });
         console.error("Error adding admin:", error);
       }
       setWalletInput("");
     } else {
-      toast.error("Please enter a valid wallet address");
+      toast.error("Please enter a valid wallet address", {
+        closeButton: true,
+      });
     }
   };
 

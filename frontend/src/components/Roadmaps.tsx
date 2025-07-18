@@ -117,8 +117,7 @@ const Roadmaps = () => {
       </div>
 
       <p className="text-gray-600 mb-6">
-        Active roadmaps are currently in progress and are being actively
-        managed.
+        Active Roadmaps are currently in progress and are being actively managed
       </p>
 
       {isLoading ? (

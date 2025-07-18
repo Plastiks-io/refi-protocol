@@ -1,22 +1,16 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { WalletContext } from "../../App";
-import {
-  sendNft,
-  updateRoadmapData,
-  waitForTransactionConfirmation,
-} from "../../services/BuyNFT";
 import { toast } from "sonner";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../../redux/store";
-import { fetchRoadmaps } from "../../redux/roadmapSlice";
+import { cardanoClient } from "@/services/cardano";
 
 const NFTPurchase: React.FC = () => {
   const wallet = useContext(WalletContext);
 
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
   const [quantities, setQuantities] = useState<{ [index: number]: number }>({});
-  const [txToConfirm, setTxToConfirm] = useState<string | null>(null);
 
   const [address, setAddress] = useState<string | null>(null);
   const { roadmaps, loading, error } = useSelector(
@@ -32,39 +26,43 @@ const NFTPurchase: React.FC = () => {
         roadmaps[index].totalPlasticCredits -
         roadmaps[index].soldPlasticCredits;
 
+      // check if all sold
+      if (
+        roadmaps[index].soldPlasticCredits ===
+        roadmaps[index].totalPlasticCredits
+      ) {
+        toast.error("This roadmap is sold out.", {
+          closeButton: true,
+        });
+        return;
+      }
+
       if (qty > availableCredits) {
         toast.error(
-          `You can only buy up to ${availableCredits} plastic credits for this roadmap.`
+          `You can only buy up to ${availableCredits} plastic credits for this roadmap.`,
+          {
+            closeButton: true,
+          }
         );
         return;
       }
       if (!wallet) {
         throw new Error("Wallet is not connected.");
       }
-      // const txHash = await sendNft(wallet, qty);
-      const txHash = await sendNft(wallet, qty);
-      console.log("Transaction Hash:", txHash);
+      const preId = roadmaps[index].preId;
+      const roadmapId = roadmaps[index].roadmapId;
+      await cardanoClient.sentPc(wallet, qty, preId, roadmapId);
       setQuantities((prev) => ({ ...prev, [index]: 1 }));
-      toast.success("NFT purchased successfully!");
-      const resp = await updateRoadmapData(
-        roadmaps[index].preId,
-        roadmaps[index].roadmapId,
-        qty
-      );
-      console.log(resp.txHash);
-      // Set the transaction hash to confirm outside
-      setTxToConfirm(resp.txHash);
     } catch (error) {
       console.error("Error purchasing NFT:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "An unknown error occurred";
-      toast.error(`Failed to purchase NFT: ${errorMessage}`);
     }
   };
 
   const handleBuy = async (index: number) => {
     if (!wallet || !address) {
-      toast.warning("Please connect your wallet before buying.");
+      toast.warning("Please connect your wallet before buying.", {
+        closeButton: true,
+      });
       return;
     }
 
@@ -84,20 +82,9 @@ const NFTPurchase: React.FC = () => {
       const address = await wallet.getChangeAddress();
       setAddress(address);
     };
-    const confirmTransaction = async () => {
-      if (txToConfirm) {
-        const isConfirmed = await waitForTransactionConfirmation(txToConfirm);
-        if (isConfirmed) {
-          toast.success("Transaction confirmed!");
-          dispatch(fetchRoadmaps());
-        }
-        setTxToConfirm(null); // Reset
-      }
-    };
 
     fetchAddress();
-    confirmTransaction();
-  }, [wallet, txToConfirm, dispatch]);
+  }, [wallet, dispatch]);
 
   if (loading) {
     return (
@@ -119,7 +106,7 @@ const NFTPurchase: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-50 py-10 px-4 flex flex-wrap">
+    <div className="bg-gray-50 py-10 px-4 flex flex-wrap min-h-[80vh]">
       {roadmaps.map((roadmap, index) => (
         <div
           key={index}

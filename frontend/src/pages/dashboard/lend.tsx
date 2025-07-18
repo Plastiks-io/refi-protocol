@@ -35,7 +35,9 @@ export default function Lend() {
     try {
       if (!wallet) throw new Error("Wallet not connected");
       const txHash = await cardanoClient.depositPlastik(wallet, BigInt(amount));
-      toast.success("Tokens lent successfully! " + txHash);
+      toast.success("Tokens lent successfully! " + txHash, {
+        closeButton: true,
+      });
       setShowLendModal(false);
       setLendAmount("");
     } catch (error) {
@@ -43,7 +45,10 @@ export default function Lend() {
       toast.error(
         `Failed to lend tokens: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
+        {
+          closeButton: true,
+        }
       );
     }
   };
@@ -63,7 +68,9 @@ export default function Lend() {
         wallet,
         BigInt(amount)
       );
-      toast.success("Tokens withdrawn successfully! " + txHash);
+      toast.success("Tokens withdrawn successfully! " + txHash, {
+        closeButton: true,
+      });
       setShowWithdrawalWarning(false);
       setWithdrawAmount("");
     } catch (error) {
@@ -71,24 +78,34 @@ export default function Lend() {
       toast.error(
         `Failed to withdraw tokens: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
+        {
+          closeButton: true,
+        }
       );
     }
   };
 
   const redeemReward = async () => {
     if (!data || data.rewardDebt === BigInt(0)) {
-      toast.error("No rewards available to redeem");
+      toast.error("No rewards available to redeem", {
+        closeButton: true,
+      });
       return;
     }
     try {
       if (!wallet) throw new Error("Wallet not connected");
       const txHash = await cardanoClient.redeemReward(wallet);
-      toast.success("Tokens withdrawn successfully! " + txHash);
+      toast.success("Tokens withdrawn successfully! " + txHash, {
+        closeButton: true,
+      });
     } catch (error) {
       console.error(error);
       toast.error(
-        `${error instanceof Error ? error.message : "Unknown error"}`
+        `${error instanceof Error ? error.message : "Unknown error"}`,
+        {
+          closeButton: true,
+        }
       );
     }
   };
@@ -112,7 +129,10 @@ export default function Lend() {
       toast.error(
         `Failed to fetch balances: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
+        {
+          closeButton: true,
+        }
       );
     }
   };

@@ -13,10 +13,14 @@ export const signInOnServer = async (address: string) => {
     if (!res.data || !res.data.success) {
       throw new Error(res.data?.message || "Sign-in failed");
     }
-    toast.success("Signed in successfully");
+    toast.success("Signed in successfully", {
+      closeButton: true,
+    });
     return res.data;
   } catch (err: any) {
-    toast.error("Sign-in failed");
+    toast.error("Sign-in failed", {
+      closeButton: true,
+    });
     throw new Error(
       err.response?.data?.message || err.message || "Sign-in error"
     );
@@ -30,9 +34,13 @@ export const signOutOnServer = async () => {
     if (!res.data.success) {
       throw new Error(res.data.message || "Sign-out failed");
     }
-    toast.success("Signed out successfully");
+    toast.success("Signed out successfully", {
+      closeButton: true,
+    });
   } catch (err: any) {
-    toast.error("Sign-out failed");
+    toast.error("Sign-out failed", {
+      closeButton: true,
+    });
     throw new Error(
       err.response?.data?.message || err.message || "Sign-out error"
     );

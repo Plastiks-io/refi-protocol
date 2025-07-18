@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArchive, faWallet } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "sonner";
 import axios from "axios";
-import { formatDateTime, truncateAddress } from "@/utils/helper";
+import { truncateAddress } from "@/utils/helper";
 import { useContext, useState } from "react";
 import { Trust, User2 } from "@/assets/icons";
 import { formatAmount } from "@/utils/helper";
@@ -14,33 +14,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { removeRoadmap, Roadmap } from "@/redux/roadmapSlice";
-import { AlertTriangle, ArrowRight, Loader2, Recycle } from "lucide-react";
+import { AlertTriangle, Loader2, Recycle } from "lucide-react";
 import AddAdminPopup from "./AddAdminPopup";
 import { fetchArchivedRoadmaps } from "@/redux/archivedRoadmapSlice";
 import { cardanoClient } from "@/services/cardano";
 import { WalletContext } from "@/App";
-import {
-  addCompletedRoadmap,
-  CompletedRoadmap,
-} from "@/redux/completedRoadmapSlice";
+import { Transaction } from "@/redux/TransactionSlice";
+import TransactionList from "../TransactionList";
 
-const Transactions = [
-  {
-    id: "tx1",
-    title: "Fund Transfer",
-    subtitle: "10,000 USDM to Escrow",
-    timestamp: new Date("2025-01-15T12:30:00Z"),
-    type: "transfer",
-  },
-  {
-    id: "tx2",
-    title: "Credits Sold",
-    subtitle: "5,000 kg of plastic",
-    timestamp: new Date("2025-01-14T15:45:00Z"),
-    type: "credits",
-  },
-];
-const RoadmapDetails: React.FC = () => {
+interface RoadmapDetailsProps {
+  transactions: Transaction[]; // Define the transactions prop here
+}
+const RoadmapDetails: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
   const wallet = useContext(WalletContext);
   // Grab `roadmapId` from URL params
   const { roadmapId } = useParams<{ roadmapId: string }>();
@@ -89,6 +74,12 @@ const RoadmapDetails: React.FC = () => {
   const [sentAmount, setSentAmount] = useState("0");
   // Track “Add Admin” modal visibility
   const [showAddAdmin, setShowAddAdmin] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+
+  // Use useEffect to reconnect the wallet when the component mounts or when walletId changes
+  const role = useSelector((state: RootState) => state.auth.role);
+  const isAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
 
   // If no matching roadmap, show “not found”
   if (!roadmap) {
@@ -103,13 +94,18 @@ const RoadmapDetails: React.FC = () => {
   const handleRelease = async () => {
     if (roadmap.progress !== 100 && Number(roadmap.fundsMissing) > 0) {
       toast.error(
-        "Funds cannot be released until the progress is 100% or all funds are sent to escrow."
+        "Funds cannot be released until the progress is 100% or all funds are sent to escrow.",
+        {
+          closeButton: true,
+        }
       );
       return;
     }
 
     if (!wallet) {
-      toast.error("Wallet not connected.");
+      toast.error("Wallet not connected.", {
+        closeButton: true,
+      });
       return;
     }
 
@@ -119,40 +115,61 @@ const RoadmapDetails: React.FC = () => {
         roadmap.preId,
         roadmap.roadmapId
       );
-      toast.success(`Funds released successfully! Transaction Hash: ${txHash}`);
+      toast.success(
+        `Funds released successfully! Transaction Hash: ${txHash}`,
+        {
+          closeButton: true,
+        }
+      );
       const url = import.meta.env.VITE_SERVER_URL;
       const apiUrl = `${url}/roadmap/save`;
       const { data: res } = await axios.post(apiUrl, roadmap);
-      toast.success(res.message);
+      toast.success(res.message, {
+        closeButton: true,
+      });
       // After successful release, remove from active roadmaps
       dispatch(removeRoadmap(roadmap.roadmapId));
       // Also add in completed roadmaps
-      const completedRoadmap: CompletedRoadmap = {
-        id: res.roadmaps.id,
-        ...roadmap,
-      };
-      dispatch(addCompletedRoadmap(completedRoadmap));
-      navigate("/admin"); // go back to admin
+      navigate("/"); // go back to /
     } catch (error) {
       console.error("Error releasing funds:", error);
-      toast.error("Failed to release funds. Please try again.");
+      toast.error("Failed to release funds. Please try again.", {
+        closeButton: true,
+      });
     }
   };
 
   const handleArchive = async () => {
     if (!wallet) {
-      toast.error("Wallet not connected.");
+      toast.error("Wallet not connected.", {
+        closeButton: true,
+      });
+      return;
+    }
+    // check if funds are distributed before archiving
+    if (roadmap.progress === 100 && Number(roadmap.fundsMissing) > 0) {
+      toast.error(
+        "Funds cannot be archived when the progress is 100% or all funds are sent to escrow.",
+        {
+          closeButton: true,
+        }
+      );
       return;
     }
     try {
       console.log(roadmap);
+      setArchiveLoading(true);
       const txHash = await cardanoClient.archivedRoadmap(
         wallet,
         roadmap.preId,
         roadmap.roadmapId
       );
+      setArchiveLoading(false);
       toast.success(
-        `Roadmap archived successfully! Transaction Hash: ${txHash}`
+        `Roadmap archived successfully! Transaction Hash: ${txHash}`,
+        {
+          closeButton: true,
+        }
       );
       const url = import.meta.env.VITE_SERVER_URL;
       const apiUrl = `${url}/roadmap/archive`;
@@ -164,32 +181,42 @@ const RoadmapDetails: React.FC = () => {
       dispatch(fetchArchivedRoadmaps());
       // remove from active roadmaps
       dispatch(removeRoadmap(roadmap.roadmapId));
-      toast.success(res.message);
+      toast.success(res.message, {
+        closeButton: true,
+      });
       navigate("/admin"); // go back one page
     } catch (error) {
+      setArchiveLoading(false);
       console.error("Error archiving roadmap:", error);
-      toast.error("Failed to archive roadmap. Please try again.");
     }
   };
 
   const sendStablecoinsToEscrow = async () => {
     if (!wallet) {
-      toast.error("Wallet not connected.");
+      toast.error("Wallet not connected.", {
+        closeButton: true,
+      });
       return;
     }
     if (!sentAmount || Number(sentAmount) <= 0) {
-      toast.error("Please enter a valid amount to send.");
+      toast.error("Please enter a valid amount to send.", {
+        closeButton: true,
+      });
       return;
     }
     if (Number(sentAmount) > Number(roadmap.fundsMissing)) {
       toast.error(
         `You can only send up to ${
           Number(roadmap.fundsMissing) / 1_000_000
-        } USDM`
+        } USDM`,
+        {
+          closeButton: true,
+        }
       );
       return;
     }
     try {
+      setLoading(true);
       setShowSendStablecoin(false);
       const txHash = await cardanoClient.fundUSDM(
         wallet,
@@ -197,14 +224,22 @@ const RoadmapDetails: React.FC = () => {
         roadmap.roadmapId,
         BigInt(sentAmount)
       );
-      toast.success("Stablecoins sent to escrow successfully! " + txHash);
+      setLoading(false);
+      toast.success("Stablecoins sent to escrow successfully! " + txHash, {
+        closeButton: true,
+      });
       console.log("Transaction Hash:", txHash);
-    } catch (error) {
-      console.error("Error sending stablecoins to escrow:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to send stablecoins"
-      );
+    } catch (err: Error | any) {
+      console.error("Error sending stablecoins to escrow:", err);
+      setLoading(false);
     }
+  };
+
+  const copyAddress = () => {
+    navigator.clipboard.writeText(roadmap.preAddress);
+    toast.success("P.R.E address copied to clipboard", {
+      closeButton: true,
+    });
   };
 
   const disabled =
@@ -232,41 +267,49 @@ const RoadmapDetails: React.FC = () => {
           <p className="text-md">Roadmap Details</p>
           <h1 className="text-2xl font-semibold">{roadmap.roadmapName}</h1>
 
-          <div className="flex items-center text-[#525252] my-2">
+          <div
+            className="flex items-center text-[#525252] my-2 cursor-pointer"
+            onClick={copyAddress}
+          >
             <FontAwesomeIcon icon={faWallet} className="mr-2" />
             <p>{truncateAddress(roadmap.preAddress)}</p>
           </div>
         </div>
 
-        <div className="flex gap-2 mb-5">
-          {/* Add Admin button */}
-          <button
-            className="ml-auto flex items-center gap-1.5 bg-white text-[#0D0D0D] font-semibold px-4 py-2.5 rounded-full cursor-pointer border border-[#0D0D0D]"
-            onClick={() => setShowAddAdmin(true)}
-          >
-            <img src={User2} alt="user plus" className="w-5 h-5 invert-100" />
-            <span>Add Admin</span>
-          </button>
+        {isAdmin && roadmap.status === "active" && (
+          <div className="flex gap-2 mb-5">
+            {/* Add Admin button */}
+            <button
+              className="ml-auto flex items-center gap-1.5 bg-white text-[#0D0D0D] font-semibold px-4 py-2.5 rounded-full cursor-pointer border border-[#0D0D0D]"
+              onClick={() => setShowAddAdmin(true)}
+            >
+              <img src={User2} alt="user plus" className="w-5 h-5 invert-100" />
+              <span>Add Admin</span>
+            </button>
 
-          {/* Archive Roadmap button */}
-          <Button variant="outline" icon={faArchive} onClick={handleArchive}>
-            Archive Roadmap
-          </Button>
+            {/* Archive Roadmap button */}
+            <Button variant="outline" icon={faArchive} onClick={handleArchive}>
+              <span className="flex items-center gap-2">
+                Archive Roadmap
+                {archiveLoading && <Loader2 className="animate-spin" />}
+              </span>
+            </Button>
 
-          {/* Release Funds button */}
-          <button
-            onClick={handleRelease}
-            className={`ml-auto flex items-center gap-1.5 font-semibold px-4 py-2.5 rounded-full cursor-pointer ${
-              !disabled
-                ? "bg-green-500 text-white border border-[#0D0D0D]"
-                : "bg-[#B1B5B4] text-white"
-            } hover:bg-gray`}
-            disabled={disabled}
-          >
-            <img src={Trust} alt="trust" className="w-5 h-5" />
-            <span>Release Funds</span>
-          </button>
-        </div>
+            {/* Release Funds button */}
+            <button
+              onClick={handleRelease}
+              className={`ml-auto flex items-center gap-1.5 font-semibold px-4 py-2.5 rounded-full cursor-pointer ${
+                !disabled
+                  ? "bg-green-500 text-white border border-[#0D0D0D]"
+                  : "bg-[#B1B5B4] text-white"
+              } hover:bg-gray`}
+              disabled={disabled}
+            >
+              <img src={Trust} alt="trust" className="w-5 h-5" />
+              <span>Release Funds</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Stats Cards ── */}
@@ -307,61 +350,71 @@ const RoadmapDetails: React.FC = () => {
       </div>
 
       {/* Escrow fund Status */}
-      <div className="bg-white rounded-2xl shadow-md p-6 w-full mx-auto border border-[#E5E7EB]">
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Escrow Status
-          </h2>
+      {isAdmin && roadmap.status === "active" && (
+        <div className="bg-white rounded-2xl shadow-md p-6 w-full mx-auto border border-[#E5E7EB]">
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900">
+              Escrow Status
+            </h2>
 
-          {Number(roadmap.fundsMissing) > 0 ? (
-            <span className="flex items-center gap-1 bg-[#FFDC85] text-[#1B1B1F] text-sm font-medium px-3 py-1 rounded-full">
-              <AlertTriangle className="w-4 h-4" />
-              Pending Funds
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-              <Recycle className="w-4 h-4" />
-              Funds Released
-            </span>
+            {Number(roadmap.fundsMissing) > 0 ? (
+              <span className="flex items-center gap-1 bg-[#FFDC85] text-[#1B1B1F] text-sm font-medium px-3 py-1 rounded-full">
+                <AlertTriangle className="w-4 h-4" />
+                Pending Funds
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
+                <Recycle className="w-4 h-4" />
+                Funds Released
+              </span>
+            )}
+          </div>
+
+          {/* ── Total Funds Distributed ── */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">Total Funds Distributed</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">
+              {Number(roadmap.fundsDistributed) / 1_000_000} USDM
+            </p>
+          </div>
+
+          <hr className="border-1 border-[#C9C9C9] my-4" />
+
+          {/* ── Amount Pending Row ── */}
+          {Number(roadmap.fundsMissing) > 0 && (
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+              {/* Left: Amount Pending */}
+              <div className="md:w-1/2">
+                <p className="text-sm text-gray-600">
+                  Amount Pending to be Sent to Escrow
+                </p>
+                <p className="mt-1 text-xl font-bold text-red-600">
+                  {Number(roadmap.fundsMissing) / 1_000_000} USDM
+                </p>
+              </div>
+
+              {/* Right: Send Stablecoins Button */}
+              <div className="mt-4 md:mt-0 md:w-1/2 flex justify-start md:justify-end">
+                <button
+                  onClick={() => setShowSendStablecoin(true)}
+                  className="bg-[#082FB9] hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full transition"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      Sending...
+                      <Loader2 className="animate-spin" />
+                    </span>
+                  ) : (
+                    "Send Stablecoins to Escrow"
+                  )}
+                </button>
+              </div>
+            </div>
           )}
         </div>
+      )}
 
-        {/* ── Total Funds Distributed ── */}
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">Total Funds Distributed</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">
-            {Number(roadmap.fundsDistributed) / 1_000_000} USDM
-          </p>
-        </div>
-
-        <hr className="border-1 border-[#C9C9C9] my-4" />
-
-        {/* ── Amount Pending Row ── */}
-        {Number(roadmap.fundsMissing) > 0 && (
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-            {/* Left: Amount Pending */}
-            <div className="md:w-1/2">
-              <p className="text-sm text-gray-600">
-                Amount Pending to be Sent to Escrow
-              </p>
-              <p className="mt-1 text-xl font-bold text-red-600">
-                {Number(roadmap.fundsMissing) / 1_000_000} USDM
-              </p>
-            </div>
-
-            {/* Right: Send Stablecoins Button */}
-            <div className="mt-4 md:mt-0 md:w-1/2 flex justify-start md:justify-end">
-              <button
-                onClick={() => setShowSendStablecoin(true)}
-                className="bg-[#082FB9] hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full transition"
-              >
-                Send Stablecoins to Escrow
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
       {/*  showSendStablecoin Modal */}
       {showSendStablecoin && (
         <div className="fixed inset-0 bg-[rgba(0,0,0,0.5)] bg-opacity-50 flex items-center justify-center p-4">
@@ -422,54 +475,7 @@ const RoadmapDetails: React.FC = () => {
 
       {/* Transaction History of fund transfered */}
       <div className="w-full mx-auto mt-5">
-        {/* ── Header ── */}
-        <div className="mb-2">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Transaction History
-          </h2>
-
-          <p className="mt-1 text-sm text-gray-600">
-            Below is the transaction details of usdm transfered
-          </p>
-        </div>
-
-        {/* ── Card Container ── */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-[#E5E7EB]">
-          {Transactions.map((tx, idx) => {
-            const { datePart, timePart } = formatDateTime(tx.timestamp);
-            const isLast = idx === Transactions.length - 1;
-
-            return (
-              <div
-                key={tx.id}
-                className={`flex items-center justify-between px-4 py-4 sm:px-6 ${
-                  !isLast ? "border-b border-gray-200" : ""
-                }`}
-              >
-                {/* Left section: icon + title/subtitle */}
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-[#082FB9] text-white rounded-full p-2">
-                    {tx.type === "transfer" ? <ArrowRight /> : <Recycle />}
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-base font-medium text-gray-900">
-                      {tx.title}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">{tx.subtitle}</p>
-                  </div>
-                </div>
-
-                {/* Right section: date/time */}
-                <div className="flex flex-col items-end">
-                  <p className="text-sm font-medium text-gray-900">
-                    {datePart}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">{timePart}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <TransactionList transactions={transactions} roadmapId={roadmapId} />
       </div>
       <AddAdminPopup
         isOpen={showAddAdmin}

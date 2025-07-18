@@ -1,7 +1,9 @@
 import { Roadmap } from "@/redux/roadmapSlice";
 import Button from "./Button";
+import { useNavigate } from "react-router-dom";
 
 const RoadmapCard: React.FC<Roadmap> = ({
+  roadmapId,
   roadmapName,
   roadmapDescription,
   progress,
@@ -12,6 +14,7 @@ const RoadmapCard: React.FC<Roadmap> = ({
   totalPlastic,
   recoveredPlastic,
 }) => {
+  const navigate = useNavigate();
   return (
     <div className="bg-white p-4 sm:p-6 text-black rounded-3xl mb-4 w-full border border-[#D4D9D8]">
       {/* Title Section */}
@@ -66,6 +69,11 @@ const RoadmapCard: React.FC<Roadmap> = ({
         <Button
           variant="userButton"
           className="bg-[#0D0D0D] text-white rounded-full font-semibold"
+          onClick={() => {
+            // Navigate to details page
+            // Example: navigate(`/roadmap/${preId}`);
+            navigate(`/roadmap/${roadmapId}`);
+          }}
         >
           View Details
         </Button>

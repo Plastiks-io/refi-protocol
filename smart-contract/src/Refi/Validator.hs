@@ -79,10 +79,10 @@ validate datum redeemer ctx =
             traceIfFalse "Progress is not completed" (progress datum == 10000)  -- Must reach 100.00%
 
         Archived ->
-            traceIfFalse "No admin signed tx" (isSignedByAnyAdmin info (adminsPkh datum))
+            traceIfFalse "No admin signed the tx" (isSignedByAnyAdmin info (adminsPkh datum))
 
         FundUSDM ->
-            traceIfFalse "No admin signed tx" (isSignedByAnyAdmin info (adminsPkh datum))
+            traceIfFalse "No admin signed the tx" (isSignedByAnyAdmin info (adminsPkh datum))
             
     where
         info = scriptContextTxInfo ctx

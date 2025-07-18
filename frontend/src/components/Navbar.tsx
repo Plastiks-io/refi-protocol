@@ -57,9 +57,13 @@ const Navbar = () => {
     } catch (error) {
       if (error instanceof Error) {
         console.log(error);
-        toast.error("Please Activate Connect as DApp Account in your wallet");
+        toast.error("Please Activate Connect as DApp Account in your wallet", {
+          closeButton: true,
+        });
       } else {
-        toast.error("An unknown error occurred");
+        toast.error("An unknown error occurred", {
+          closeButton: true,
+        });
       }
     }
   };
@@ -68,7 +72,9 @@ const Navbar = () => {
     try {
       await signOutOnServer();
     } catch (err) {
-      toast.error("Failed to sign out from server");
+      toast.error("Failed to sign out from server", {
+        closeButton: true,
+      });
     }
     dispatch(disconnectWallet());
     dispatch(clearAuthUser());
@@ -296,21 +302,32 @@ const Navbar = () => {
                   Connect Wallet
                 </Button>
               ) : isAdmin ? (
-                <div
-                  className="flex items-center space-x-4 cursor-pointer"
-                  onClick={() => setShowDisconnect(true)}
-                >
-                  {/* Settings Icon navigate to setting*/}
+                <div className="flex items-center space-x-4">
+                  {/* Settings link */}
                   <Link
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                    to={"admin/settings"}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                    to="admin/settings"
                   >
                     <Settings className="w-5 h-5 text-black" />
                   </Link>
 
-                  <div className="w-10 h-10 rounded-full bg-[#082FB9] flex items-center justify-center">
+                  {/* Avatar – click to open disconnect */}
+                  <div
+                    className="w-10 h-10 rounded-full bg-[#082FB9] flex items-center justify-center cursor-pointer"
+                    onClick={() => setShowDisconnect(true)}
+                  >
                     <User />
                   </div>
+
+                  {/* Confirmation popup */}
+                  <DisconnectPopup
+                    isOpen={showDisconnect}
+                    onConfirm={() => {
+                      disconnect();
+                      setShowDisconnect(false);
+                    }}
+                    onCancel={() => setShowDisconnect(false)}
+                  />
                 </div>
               ) : (
                 <div className="flex items-center space-x-4">

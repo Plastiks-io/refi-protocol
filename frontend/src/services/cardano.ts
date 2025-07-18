@@ -1,8 +1,10 @@
 import { Roadmap } from "@/redux/roadmapSlice";
 import { BrowserWallet } from "@meshsdk/core";
+import axios from "axios";
 import { Constr, fromText, toText, Validator, WalletApi } from "lucid-cardano";
 import { Lucid, Blockfrost, getAddressDetails, Data } from "lucid-cardano";
 import type { Assets, Network } from "lucid-cardano";
+import { toast } from "sonner";
 
 export interface NetworkConfig {
   projectId: string;
@@ -380,7 +382,9 @@ export class Cardano {
       // Check if contract has enough PLASTIK tokens to withdraw
       const contractPtBalance = stakeRewardUTXO.assets[this.ptAssetUnit] || 0n;
       if (contractPtBalance < withdrawAmount) {
-        throw new Error("Contract has insufficient PLASTIK tokens");
+        throw new Error(
+          "Contract has insufficient PLASTIK tokens to withdraw because your assets are being funded to the roadmap"
+        );
       }
 
       // Build the redeemer for Withdraw action
@@ -661,12 +665,30 @@ export class Cardano {
 
       const signed = await tx.sign().complete();
       const txHash = await signed.submit();
-      return txHash;
-    } catch (error) {
-      console.error("Error funding USDM:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to fund USDM"
+
+      // save the plastik token to Lend S.C as well as usdm funding on DB
+      await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/transaction/save-multiple`,
+        {
+          txDate: new Date(),
+          txFee: 2,
+          plastikAmount: Number(sendPlastikToken),
+          USDMAmount: Number(USDMAmount),
+          roadmapId,
+          plastikToken: this.ptAssetUnit,
+          usdmToken: this.usdmAssetUnit,
+          hash: txHash,
+          type1: "tokenReturn",
+          type2: "fundTransfer",
+        }
       );
+      return txHash;
+    } catch (error: Error | any) {
+      console.error("Error funding USDM:", error);
+      toast.error("Failed to send stablecoins " + error.info, {
+        closeButton: true,
+      });
+      throw new Error(error);
     }
   };
 
@@ -961,6 +983,19 @@ export class Cardano {
 
       const signedTx = await tx.sign().complete();
       const txHash = await signedTx.submit();
+
+      // save the usdm token released on DB divide it with 10^6 because it is in micro at datum
+      const usdmValueDivided = Number(usdmValue) / 1000000;
+
+      await axios.post(`${import.meta.env.VITE_SERVER_URL}/transaction/save`, {
+        txDate: new Date(),
+        txFee: 2,
+        amount: usdmValueDivided,
+        roadmapId: roadmapId,
+        assetId: this.usdmAssetUnit,
+        hash: txHash,
+        type: "usdmReleased",
+      });
       return txHash;
     } catch (error) {
       console.error("Error releasing funds:", error);
@@ -1019,8 +1054,11 @@ export class Cardano {
       const txHash = await signedTx.submit();
 
       return txHash;
-    } catch (error) {
+    } catch (error: Error | any) {
       console.error("Error archiving roadmap:", error);
+      toast.error("Failed to Archive Roadmap  " + " " + error.info, {
+        closeButton: true,
+      });
       throw new Error(
         error instanceof Error ? error.message : "Failed to archive roadmap"
       );
@@ -1095,6 +1133,69 @@ export class Cardano {
       throw new Error(
         error instanceof Error ? error.message : "Failed to restore roadmap"
       );
+    }
+  };
+
+  public sentPc = async (
+    wallet: BrowserWallet,
+    amount: number,
+    preId: string,
+    roadmapId: string
+  ) => {
+    try {
+      const walletApi = this.meshToLucidAdapter(wallet.walletInstance);
+
+      // Initialize lucid if not initialized
+      if (!this.lucidInstance) {
+        const networkId = await walletApi.getNetworkId();
+        await this.init(networkId);
+      }
+
+      const lucid = this.getLucid();
+      const adminAddress = import.meta.env.VITE_ADMIN_WALLET_ADDRESS;
+
+      if (!adminAddress || !adminAddress.startsWith("addr")) {
+        throw new Error("Invalid or missing admin wallet address.");
+      }
+
+      const quantity = amount * 1_000_000; // convert ADA to lovelace
+
+      // Get buyer's address
+      lucid.selectWallet(walletApi);
+
+      // Build the atomic transaction
+      const tx = await lucid
+        .newTx()
+        // ADA goes to admin
+        .payToAddress(adminAddress, {
+          lovelace: BigInt(quantity),
+        })
+        .complete();
+
+      // Sign and submit the transaction
+      const signedTx = await tx.sign().complete();
+      const txHash = await signedTx.submit();
+      const body = {
+        txHash: txHash,
+        buyerAddress: await lucid.wallet.address(),
+        preId: preId,
+        roadmapId: roadmapId,
+        soldPlasticCredit: amount,
+      };
+      const { data: res } = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/nft/buy`,
+        body
+      );
+
+      toast.success(res.message, {
+        closeButton: true,
+      });
+    } catch (err: Error | any) {
+      console.log("Error sending pc:", err);
+      toast.error("Failed to send pc" + " " + err.info, {
+        closeButton: true,
+      });
+      throw new Error(err instanceof Error ? err.message : "Failed to send pc");
     }
   };
 }

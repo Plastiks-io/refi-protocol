@@ -50,7 +50,9 @@ const Community: React.FC = () => {
   };
 
   const startVoting = () => {
-    toast.success("Success message!");
+    toast.success("Success message!", {
+      closeButton: true,
+    });
     setVotingPopup(false);
     setVoting(true);
     console.log("Voting started");

@@ -31,16 +31,14 @@ export const WalletContext = React.createContext<BrowserWallet | null>(null);
 function App() {
   const { walletId } = useSelector((state: RootState) => state.wallet);
 
-  const { transactions, loading, error } = useSelector(
-    (state: RootState) => state.transactions
-  );
+  const { transactions, loading, error, page, perPage, totalPages } =
+    useSelector((state: RootState) => state.transactions);
 
   // Page change handler
   const handlePageChange = (newPage: number) => {
-    // Update pagination in the Redux store
-    console.log(newPage);
-
-    // dispatch(setPagination({ page: newPage }));
+    // clamp to [1..totalPages]
+    const next = Math.max(1, Math.min(newPage, totalPages));
+    dispatch(fetchTransactions({ page: next, perPage }));
   };
 
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
@@ -79,7 +77,7 @@ function App() {
     if (isAdmin) {
       dispatch(fetchAdmins());
     }
-    dispatch(fetchTransactions());
+    dispatch(fetchTransactions({ page: 1, perPage }));
   }, [walletId, dispatch]);
 
   return (
@@ -102,6 +100,8 @@ function App() {
                       transactions={transactions}
                       loading={loading}
                       error={error}
+                      page={page}
+                      totalPages={totalPages}
                       onPageChange={handlePageChange}
                     />
                   }
@@ -111,7 +111,7 @@ function App() {
                   path="/admin"
                   element={
                     <PrivateAdminRoute>
-                      <Admin />
+                      <Admin transactions={transactions} />
                     </PrivateAdminRoute>
                   }
                 />
@@ -120,14 +120,6 @@ function App() {
                   element={
                     <PrivateAdminRoute>
                       <Settings />
-                    </PrivateAdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/:roadmapId"
-                  element={
-                    <PrivateAdminRoute>
-                      <RoadmapDetails />
                     </PrivateAdminRoute>
                   }
                 />
@@ -140,6 +132,11 @@ function App() {
                       <Lend />
                     </PrivateLendRoute>
                   }
+                />
+
+                <Route
+                  path="/roadmap/:roadmapId"
+                  element={<RoadmapDetails transactions={transactions} />}
                 />
               </Routes>
             </main>

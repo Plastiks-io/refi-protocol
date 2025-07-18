@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
 import StatsCard from "./StatsCard";
 import { Loader2, X } from "lucide-react";
@@ -63,6 +63,16 @@ const HeroSection = () => {
     [completedRoadmaps]
   );
 
+  // 1. Create a ref on the element at the bottom of the page
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // 2. Extract a scroll handler
+  const scrollToBottom = useCallback(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
+
   const stats = [
     {
       title: "Active Roadmaps",
@@ -122,7 +132,7 @@ const HeroSection = () => {
           </div>
           <button
             className="mt-6 px-8 sm:px-10 py-2 bg-[#082FB9] text-white font-semibold rounded-full text-sm sm:text-base cursor-pointer"
-            onClick={() => console.log("Call to action button clicked")}
+            onClick={scrollToBottom}
           >
             Roadmaps
           </button>
@@ -155,6 +165,8 @@ const HeroSection = () => {
           )}
         </section>
       </div>
+      {/* 3. Place this div at the very bottom */}
+      <div ref={bottomRef} />
     </div>
   );
 };

@@ -13,14 +13,13 @@ const RoadmapRow: React.FC<Roadmap> = ({
   progress,
   totalPlasticCredits,
   totalPlasticTokens,
+  fundsMissing,
 }) => {
   const date = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "2-digit",
   });
-
-  const isPending = false; // or derive from props
 
   const navigate = useNavigate();
 
@@ -44,7 +43,7 @@ const RoadmapRow: React.FC<Roadmap> = ({
         {totalPlasticTokens.toLocaleString("en-US")} PLASTIK
       </td>
       <td className="p-4 whitespace-nowrap">
-        {isPending ? (
+        {Number(fundsMissing) > 0 ? (
           <div className="flex items-center justify-center rounded-full gap-2 p-2 bg-[#FFDC85]">
             <TriangleAlert />
             <span>Pending</span>
@@ -61,8 +60,8 @@ const RoadmapRow: React.FC<Roadmap> = ({
           className="text-[#082FB9] border-b-2 hover:text-blue-600 transition cursor-pointer"
           onClick={() => {
             // Navigate to details page
-            // Example: navigate(`/roadmap/${preId}`);
-            navigate(`/admin/${roadmapId}`);
+            // Example: navigate(`/roadmap/${roadmapId}`);
+            navigate(`/roadmap/${roadmapId}`);
           }}
         >
           View Details

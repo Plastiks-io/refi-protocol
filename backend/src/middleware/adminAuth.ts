@@ -1,4 +1,4 @@
-// src/middleware/superAdminAuth.ts
+// src/middleware/adminAuth.ts
 
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
@@ -10,10 +10,12 @@ interface AdminToken extends JwtPayload {
   role: Role;
 }
 
-// Extend Express Request to carry our admin
-declare module "express-serve-static-core" {
-  interface Request {
-    admin?: AdminToken;
+// Extend the Express Request interface to include admin property
+declare global {
+  namespace Express {
+    interface Request {
+      admin?: AdminToken;
+    }
   }
 }
 

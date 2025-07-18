@@ -23,13 +23,17 @@ const SettingsComponent = () => {
   // function to restore archived roadmap
   const restoreRoadmap = async (roadmap: any) => {
     if (!wallet) {
-      toast.error("Wallet is not connected");
+      toast.error("Wallet is not connected", {
+        closeButton: true,
+      });
       return;
     }
     try {
       setLoading(true);
       const txHash = await cardanoClient.restoreRoadmap(wallet, roadmap);
-      toast.success("Transaction sent successfully! " + txHash);
+      toast.success("Transaction sent successfully! " + txHash, {
+        closeButton: true,
+      });
       const url = import.meta.env.VITE_SERVER_URL;
       const apiUrl = `${url}/roadmap/restore/${roadmap.id}`;
       const response = await axios.post(apiUrl, null, {
@@ -42,10 +46,14 @@ const SettingsComponent = () => {
       dispatch(addRoadmap(roadmap));
 
       console.log(response.data);
-      toast.success("Roadmap restored successfully");
+      toast.success("Roadmap restored successfully", {
+        closeButton: true,
+      });
       setLoading(false);
     } catch (error) {
-      toast.error("Failed to restore roadmap");
+      toast.error("Failed to restore roadmap", {
+        closeButton: true,
+      });
       console.error("Error restoring roadmap:", error);
       setLoading(false);
     }
@@ -64,10 +72,14 @@ const SettingsComponent = () => {
       // also remove from redux state
       dispatch(removeArchivedRoadmap(id));
       console.log(response.data);
-      toast.success("Roadmap deleted successfully");
+      toast.success("Roadmap deleted successfully", {
+        closeButton: true,
+      });
       setLoading(false);
     } catch (error) {
-      toast.error("Failed to delete roadmap");
+      toast.error("Failed to delete roadmap", {
+        closeButton: true,
+      });
       console.error("Error deleting roadmap:", error);
       setLoading(false);
     }
@@ -85,10 +97,14 @@ const SettingsComponent = () => {
       // also remove from redux state
       dispatch(removeAdmin(id));
       console.log(response.data);
-      toast.success("Admin removed successfully");
+      toast.success("Admin removed successfully", {
+        closeButton: true,
+      });
       setLoading(false);
     } catch (error) {
-      toast.error("Failed to remove admin");
+      toast.error("Failed to remove admin", {
+        closeButton: true,
+      });
       console.error("Error removing admin:", error);
       setLoading(false);
     }
