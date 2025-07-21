@@ -7,7 +7,7 @@ import { faArchive, faWallet } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "sonner";
 import axios from "axios";
 import { truncateAddress } from "@/utils/helper";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Trust, User2 } from "@/assets/icons";
 import { formatAmount } from "@/utils/helper";
 import { useParams, useNavigate } from "react-router-dom";
@@ -19,13 +19,12 @@ import AddAdminPopup from "./AddAdminPopup";
 import { fetchArchivedRoadmaps } from "@/redux/archivedRoadmapSlice";
 import { cardanoClient } from "@/services/cardano";
 import { WalletContext } from "@/App";
-import { Transaction } from "@/redux/TransactionSlice";
-import TransactionList from "../TransactionList";
 
-interface RoadmapDetailsProps {
-  transactions: Transaction[]; // Define the transactions prop here
-}
-const RoadmapDetails: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
+import { fetchTransactions, TransactionType } from "@/redux/TransactionSlice";
+import TransactionList from "../TransactionList";
+import ReactPaginate from "react-paginate";
+
+const RoadmapDetails: React.FC = () => {
   const wallet = useContext(WalletContext);
   // Grab `roadmapId` from URL params
   const { roadmapId } = useParams<{ roadmapId: string }>();
@@ -64,6 +63,15 @@ const RoadmapDetails: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
     ...archivedRoadmaps,
   ];
 
+  const {
+    transactions,
+    loading: txLoading,
+    error: txError,
+    page,
+    perPage,
+    totalPages,
+  } = useSelector((state: RootState) => state.transactions);
+
   // Find the single roadmap matching `roadmapId`
   const roadmap = allRoadmaps.find((r) => r.roadmapId === roadmapId);
 
@@ -77,9 +85,36 @@ const RoadmapDetails: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
   const [loading, setLoading] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
 
-  // Use useEffect to reconnect the wallet when the component mounts or when walletId changes
   const role = useSelector((state: RootState) => state.auth.role);
   const isAdmin = role === "SUPER_ADMIN" || role === "ADMIN";
+
+  // Fetch on mount and when page or roadmapId changes
+  useEffect(() => {
+    if (roadmapId) {
+      dispatch(
+        fetchTransactions({
+          page: 1,
+          perPage: 10,
+          type: [TransactionType.Sold, TransactionType.Transfer],
+          roadmapId,
+        })
+      );
+    }
+  }, [dispatch, roadmapId]);
+
+  // Pagination handler
+  const handlePageChange = (selected: number) => {
+    if (roadmapId) {
+      dispatch(
+        fetchTransactions({
+          page: selected,
+          perPage: 10,
+          type: [TransactionType.Sold, TransactionType.Transfer],
+          roadmapId,
+        })
+      );
+    }
+  };
 
   // If no matching roadmap, show “not found”
   if (!roadmap) {
@@ -473,9 +508,31 @@ const RoadmapDetails: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
         </div>
       )}
 
-      {/* Transaction History of fund transfered */}
       <div className="w-full mx-auto mt-5">
-        <TransactionList transactions={transactions} roadmapId={roadmapId} />
+        <TransactionList transactions={transactions} />
+
+        <ReactPaginate
+          forcePage={page - 1}
+          pageCount={totalPages}
+          onPageChange={({ selected }) => handlePageChange(selected + 1)}
+          marginPagesDisplayed={2}
+          pageRangeDisplayed={0}
+          breakLabel="…"
+          previousLabel="Prev"
+          nextLabel="Next"
+          containerClassName="flex justify-center items-center space-x-2 mt-6"
+          pageClassName="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100"
+          pageLinkClassName="text-gray-700"
+          activeClassName="bg-blue-500"
+          activeLinkClassName="text-white"
+          previousClassName="px-3 py-1 border border-gray-300 rounded-l hover:bg-gray-100"
+          nextClassName="px-3 py-1 border border-gray-300 rounded-r hover:bg-gray-100"
+          previousLinkClassName="text-gray-700"
+          nextLinkClassName="text-gray-700"
+          disabledClassName="opacity-50 cursor-not-allowed"
+          breakClassName="px-2 text-gray-500"
+          breakLinkClassName="text-gray-500"
+        />
       </div>
       <AddAdminPopup
         isOpen={showAddAdmin}

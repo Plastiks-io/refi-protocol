@@ -446,4 +446,34 @@ export class Cardano {
       `Roadmap ${roadmapId} not found at ${this.refiContractAddress}`
     );
   }
+
+  /**
+   * Poll Cardano transaction via Blockfrost until confirmed, timeout after 5 minutes.
+   */
+  public async updatedOnChain(txHash: string): Promise<boolean> {
+    const { baseUrl, projectId } = Cardano.NETWORKS;
+    const timeoutMs = 300_000; // 5 minutes
+    const pollIntervalMs = 10_000; // 10 seconds
+    const start = Date.now();
+
+    while (Date.now() - start < timeoutMs) {
+      try {
+        const resp = await fetch(`${baseUrl}/txs/${txHash}`, {
+          headers: { project_id: projectId },
+        });
+
+        if (resp.ok) {
+          return true;
+        }
+        // if status is 404 or tx.block is falsy, keep polling
+      } catch {
+        // on network or fetch error, just retry
+      }
+
+      // wait before next poll
+      await new Promise((res) => setTimeout(res, pollIntervalMs));
+    }
+
+    return false;
+  }
 }

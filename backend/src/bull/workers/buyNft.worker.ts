@@ -1,27 +1,8 @@
-// src/bull.ts
-import { Queue, Worker, Job } from "bullmq";
-import { Redis } from "ioredis";
-import { Cardano } from "./utils/cardano.js";
-import { getIO } from "./utils/socket.js";
-
-export interface BuyNftJob {
-  txHash: string;
-  buyerAddress: string;
-  preId: string;
-  roadmapId: string;
-  soldPlasticCredit: number;
-}
-
-const connection = new Redis({
-  host: "127.0.0.1",
-  port: 6379,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-});
-
-export const buyNftQueue = new Queue<BuyNftJob>("buyNftQueue", {
-  connection,
-});
+import { Worker } from "bullmq";
+import { Cardano } from "../../utils/cardano.js";
+import { getIO } from "../../utils/socket.js";
+import { BuyNftJob } from "../queues.js";
+import { connection } from "../connection.js";
 
 new Worker<BuyNftJob>(
   "buyNftQueue",

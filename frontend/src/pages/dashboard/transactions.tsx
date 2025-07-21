@@ -1,20 +1,22 @@
-import DynamicTable from "../../components/Table";
+import DynamicTable from "../../components/DynamicTable";
 import StatsCard from "../../components/StatsCard";
 // import { faFire, faLeaf } from "@fortawesome/free-solid-svg-icons";
 import { Recycle, CoinsSwap, DownArrow } from "@/assets/icons";
 import { Loader } from "lucide-react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/redux/store";
-import { useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { useEffect, useMemo, useState } from "react";
 import CheckboxFilterList, {
   FilterOption,
 } from "@/components/CheckboxFilterList";
+import ReactPaginate from "react-paginate";
+import { fetchTransactions, TransactionType } from "@/redux/TransactionSlice";
 
 const transactionsFilterOptions: FilterOption[] = [
-  { id: "creditSale", label: "Plastic Credit Sale" },
-  { id: "roadmapCompletion", label: "Roadmap Completion" },
-  { id: "tokenReturn", label: "Token Return" },
-  { id: "usdmReleased", label: "USDM Released" },
+  { id: TransactionType.Sold, label: "Plastic Credit Sale" },
+  { id: TransactionType.Roadmap, label: "Roadmap Completion" },
+  { id: TransactionType.Token, label: "Token Return" },
+  { id: TransactionType.USDM, label: "USDM Released" },
 ];
 
 const Transactions = ({
@@ -22,12 +24,13 @@ const Transactions = ({
   loading,
   error,
   page,
-  count,
+  totalPages,
   onPageChange,
 }: any) => {
-  const [filterType, setFilterType] = useState<string>(
-    transactionsFilterOptions[0].id
-  );
+  const [filterType, setFilterType] = useState<TransactionType[]>([
+    transactionsFilterOptions[0].id as TransactionType,
+  ]);
+
   const [showFilters, setShowFilters] = useState(false);
 
   // selectors for active, completed, archived
@@ -77,43 +80,20 @@ const Transactions = ({
     },
   ];
 
-  const getTransactions = () => {
-    switch (filterType) {
-      case "creditSale":
-        return transactions.filter(
-          (tx: { type: string }) => tx.type === "creditSale"
-        );
-      case "roadmapCompletion":
-        return transactions.filter(
-          (tx: { type: string }) => tx.type === "roadmapCompletion"
-        );
-      case "tokenReturn":
-        return transactions.filter(
-          (tx: { type: string }) => tx.type === "tokenReturn"
-        );
-      case "usdmReleased":
-        return transactions.filter(
-          (tx: { type: string }) => tx.type === "usdmReleased"
-        );
-      default:
-        return transactions;
-    }
-  };
-
-  const displayedTransactions = getTransactions();
-
   const getFilterValue = () => {
-    switch (filterType) {
-      case "creditSale":
+    switch (
+      filterType[0] // assuming filterType is an array with a single value
+    ) {
+      case TransactionType.Sold:
         return "Plastic Credit";
-      case "roadmapCompletion":
+      case TransactionType.Roadmap:
         return "Plastik";
-      case "tokenReturn":
+      case TransactionType.Token:
         return "Plastik";
-      case "usdmReleased":
+      case TransactionType.USDM:
         return "USDM";
       default:
-        return "";
+        return "Token";
     }
   };
 
@@ -122,11 +102,22 @@ const Transactions = ({
   // handle single-select change
   const handleFilterChange = (selected: string[]) => {
     if (selected.length) {
-      setFilterType(selected[0]);
+      setFilterType([selected[0] as TransactionType]);
       setShowFilters(false);
+      // 👇 Reset to page 1 after filter change
+      onPageChange(1, selected[0] as any);
     }
   };
 
+  const dispatch = useDispatch<AppDispatch>();
+  useEffect(() => {
+    dispatch(fetchTransactions({ page: 1, perPage: 10, type: filterType }));
+  }, [filterType]);
+
+  // When clicking pagination buttons
+  const handlePageChangeInternal = (selectedPage: number) => {
+    onPageChange(selectedPage, filterType[0] as TransactionType);
+  };
   return (
     <div className="bg-white text-gray-500 mx-auto px-4 md:px-10 lg:px-20 py-6 min-h-[calc(80vh)]">
       <section className="relative flex flex-wrap gap-2 justify-around py-8 px-4 mb-4">
@@ -144,12 +135,18 @@ const Transactions = ({
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-semibold text-[#0D0D0D]">
-            {transactionsFilterOptions.find((f) => f.id === filterType)?.label}{" "}
+            {
+              transactionsFilterOptions.find((f) => f.id === filterType[0])
+                ?.label
+            }{" "}
             Transactions
           </h2>
           <p className="text-[#0D0D0D] mb-4">
             This table displays all verified{" "}
-            {transactionsFilterOptions.find((f) => f.id === filterType)?.label}{" "}
+            {
+              transactionsFilterOptions.find((f) => f.id === filterType[0])
+                ?.label
+            }{" "}
             processed via the ReFi DApp.
           </p>
         </div>
@@ -165,7 +162,7 @@ const Transactions = ({
             <div className="absolute right-0 mt-2 w-60 max-w-md sm:w-60 rounded-2xl shadow-lg z-10 border bg-white border-[#D4D9D8]">
               <CheckboxFilterList
                 options={transactionsFilterOptions}
-                initialSelected={[filterType]}
+                initialSelected={filterType}
                 onChange={handleFilterChange}
               />
             </div>
@@ -185,26 +182,34 @@ const Transactions = ({
       ) : (
         <>
           <DynamicTable
-            transactions={displayedTransactions}
+            transactions={transactions}
             filterValue={getFilterValue()}
           />
-
-          <div className="flex justify-center mt-6 gap-0.5">
-            <button
-              onClick={() => onPageChange(page - 1)} // Call the callback on page change
-              disabled={page <= 1}
-              className="px-4 py-2 bg-blue-500 text-white rounded-l-lg disabled:bg-gray-300"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => onPageChange(page + 1)} // Call the callback on page change
-              disabled={transactions.length < count}
-              className="px-4 py-2 bg-blue-500 text-white rounded-r-lg disabled:bg-gray-300"
-            >
-              Next
-            </button>
-          </div>
+          <ReactPaginate
+            forcePage={page - 1}
+            pageCount={totalPages}
+            onPageChange={({ selected }) =>
+              handlePageChangeInternal(selected + 1)
+            }
+            // show first 2 pages and last 2 pages only
+            marginPagesDisplayed={2}
+            pageRangeDisplayed={0}
+            breakLabel="…"
+            previousLabel="Prev"
+            nextLabel="Next"
+            containerClassName="flex justify-center items-center space-x-2 mt-6"
+            pageClassName="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100"
+            pageLinkClassName="text-gray-700"
+            activeClassName="bg-blue-500"
+            activeLinkClassName="text-white"
+            previousClassName="px-3 py-1 border border-gray-300 rounded-l hover:bg-gray-100"
+            nextClassName="px-3 py-1 border border-gray-300 rounded-r hover:bg-gray-100"
+            previousLinkClassName="text-gray-700"
+            nextLinkClassName="text-gray-700"
+            disabledClassName="opacity-50 cursor-not-allowed"
+            breakClassName="px-2 text-gray-500"
+            breakLinkClassName="text-gray-500"
+          />
         </>
       )}
     </div>

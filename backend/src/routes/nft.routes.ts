@@ -1,6 +1,6 @@
 // src/routes/buy-nft.routes.ts
 import express from "express";
-import { buyNftQueue } from "../bull.js";
+import { buyNftQueue } from "../bull/queues.js";
 
 const router = express.Router();
 router.post("/buy", async (req, res) => {

@@ -1,5 +1,4 @@
 // src/store/transactionSlice.ts
-
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
 
@@ -48,6 +47,7 @@ interface TransactionState {
   perPage: number;
   total: number;
   totalPages: number;
+  currentFilter: TransactionType[];
 }
 
 const initialState: TransactionState = {
@@ -55,30 +55,54 @@ const initialState: TransactionState = {
   loading: false,
   error: null,
   page: 1,
-  perPage: 20,
+  perPage: 10,
   total: 0,
   totalPages: 1,
+  currentFilter: [TransactionType.Sold],
 };
 
 // Async thunk to fetch a page of transactions
 export const fetchTransactions = createAsyncThunk<
   FetchTransactionsResponse,
-  { page?: number; perPage?: number }
->("transactions/fetchAll", async ({ page = 1, perPage = 20 }) => {
-  const baseUrl = import.meta.env.VITE_SERVER_URL;
-  const response = await axios.get<FetchTransactionsResponse>(
-    `${baseUrl}/transaction/all`,
-    { params: { page, perPage } }
-  );
-  return response.data;
-});
+  {
+    page?: number;
+    perPage?: number;
+    type: TransactionType | TransactionType[];
+    roadmapId?: string;
+  }
+>(
+  "transactions/fetchAll",
+  async ({
+    page = 1,
+    perPage = 10,
+    type = TransactionType.Sold,
+    roadmapId,
+  }) => {
+    const baseUrl = import.meta.env.VITE_SERVER_URL;
+    const params = new URLSearchParams();
+
+    params.append("page", page.toString());
+    params.append("perPage", perPage.toString());
+
+    // normalize into an array
+    const types = Array.isArray(type) ? type : [type];
+    types.forEach((t) => params.append("type", t));
+
+    // append roadmapId if provided
+    if (roadmapId) {
+      params.append("roadmapId", roadmapId);
+    }
+
+    const url = `${baseUrl}/transaction/all?${params.toString()}`;
+    const response = await axios.get<FetchTransactionsResponse>(url);
+    return response.data;
+  }
+);
 
 const transactionSlice = createSlice({
   name: "transactions",
   initialState,
-  reducers: {
-    // You can add non-async reducers here if needed
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(fetchTransactions.pending, (state) => {

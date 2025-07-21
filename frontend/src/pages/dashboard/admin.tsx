@@ -1,15 +1,16 @@
 // src/pages/dashboard/admin.tsx
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import RoadmapRow from "../../components/RoadmapRow";
-import { RootState } from "../../redux/store";
+import { AppDispatch, RootState } from "../../redux/store";
 import { AlertCircle, Loader } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DownArrow } from "@/assets/icons";
 import CheckboxFilterList, {
   FilterOption,
 } from "@/components/CheckboxFilterList";
-import { Transaction } from "@/redux/TransactionSlice";
+import { fetchTransactions, TransactionType } from "@/redux/TransactionSlice";
 import TransactionList from "@/components/TransactionList";
+import ReactPaginate from "react-paginate";
 
 const filterOptions: FilterOption[] = [
   { id: "active", label: "In Progress" },
@@ -21,10 +22,7 @@ const filterOptions: FilterOption[] = [
   { id: "lessKgs", label: "Less Kgs" },
 ];
 
-interface RoadmapDetailsProps {
-  transactions: Transaction[]; // Define the transactions prop here
-}
-const AdminPage: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
+const AdminPage: React.FC = () => {
   // selectors for active, completed
   const {
     roadmaps: activeRoadmaps,
@@ -36,6 +34,10 @@ const AdminPage: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
     loading: loadingCompleted,
     error: errorCompleted,
   } = useSelector((state: RootState) => state.completedRoadmaps);
+
+  const { transactions, page, perPage, totalPages } = useSelector(
+    (state: RootState) => state.transactions
+  );
 
   const [showFilters, setShowFilters] = useState(false);
   const toggleFilters = () => setShowFilters((prev) => !prev);
@@ -93,6 +95,27 @@ const AdminPage: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
 
   const displayedRoadmaps = getDisplayed();
 
+  const handlePageChange = (selected: number) => {
+    dispatch(
+      fetchTransactions({
+        page: selected,
+        perPage: 10,
+        type: [TransactionType.Sold, TransactionType.Transfer],
+      })
+    );
+  };
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    // for admin, fetch CreditSale + FundTransfer
+    dispatch(
+      fetchTransactions({
+        page: 1,
+        perPage,
+        type: [TransactionType.Sold, TransactionType.Transfer],
+      })
+    );
+  }, [dispatch]);
   // Otherwise, show the table & filters
   return (
     <div className="mx-auto px-4 py-6 bg-white text-black md:px-10 lg:px-20 min-h-screen">
@@ -164,7 +187,33 @@ const AdminPage: React.FC<RoadmapDetailsProps> = ({ transactions }) => {
           </div>
         )}
       </div>
-      <TransactionList transactions={transactions} />
+      {/* Transaction History of fund transfered */}
+      <div className="w-full mx-auto mt-5">
+        <TransactionList transactions={transactions} />
+        <ReactPaginate
+          forcePage={page - 1}
+          pageCount={totalPages}
+          onPageChange={({ selected }) => handlePageChange(selected + 1)}
+          // show first 2 pages and last 2 pages only
+          marginPagesDisplayed={2}
+          pageRangeDisplayed={0}
+          breakLabel="…"
+          previousLabel="Prev"
+          nextLabel="Next"
+          containerClassName="flex justify-center items-center space-x-2 mt-6"
+          pageClassName="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100"
+          pageLinkClassName="text-gray-700"
+          activeClassName="bg-blue-500"
+          activeLinkClassName="text-white"
+          previousClassName="px-3 py-1 border border-gray-300 rounded-l hover:bg-gray-100"
+          nextClassName="px-3 py-1 border border-gray-300 rounded-r hover:bg-gray-100"
+          previousLinkClassName="text-gray-700"
+          nextLinkClassName="text-gray-700"
+          disabledClassName="opacity-50 cursor-not-allowed"
+          breakClassName="px-2 text-gray-500"
+          breakLinkClassName="text-gray-500"
+        />
+      </div>
     </div>
   );
 };

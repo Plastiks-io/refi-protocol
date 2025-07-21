@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { cardanoClient } from "@/services/cardano";
 import type { BrowserWallet } from "@meshsdk/core";
+import { socket } from "@/socket";
 
 type State = {
   data: { staked: bigint; rewardDebt: bigint } | null;
@@ -25,6 +26,16 @@ export const CardanoProvider: React.FC<{
   // fetch once on mount (and whenever wallet changes)
   useEffect(() => {
     refresh().catch(console.error);
+  }, [wallet]);
+
+  useEffect(() => {
+    socket.on("stakeContractUpdated", () => {
+      // whenever the contract changes, re‑fetch on‑chain state
+      refresh().catch(console.error);
+    });
+    return () => {
+      socket.off("stakeContractUpdated");
+    };
   }, [wallet]);
 
   return (

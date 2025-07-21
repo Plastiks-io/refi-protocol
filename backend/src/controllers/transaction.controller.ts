@@ -1,3 +1,5 @@
+// src/controllers/transaction.controller.ts
+import { Op } from "sequelize";
 import axios from "axios";
 import { Transaction, TransactionType } from "../models/transaction.model.js";
 import { Request, Response } from "express";
@@ -26,17 +28,33 @@ interface MultipleAssetTransactionAttributes {
 }
 
 // src/controllers/transaction.controller.ts
-
 const getAllTransactions = async (req: Request, res: Response) => {
   try {
-    // parse query params with defaults
     const page = Math.max(parseInt(req.query.page as string) || 1, 1);
     const perPage = Math.max(parseInt(req.query.perPage as string) || 10, 1);
-
     const offset = (page - 1) * perPage;
 
-    // fetch rows + total count
+    // types filter
+    let types = req.query.type;
+    if (!types) {
+      types = [];
+    } else if (typeof types === "string") {
+      types = [types];
+    }
+
+    // roadmapId filter
+    const roadmapFilter = req.query.roadmapId as string | undefined;
+
+    const whereClause: any = {};
+    if (Array.isArray(types) && types.length) {
+      whereClause.type = { [Op.in]: types };
+    }
+    if (roadmapFilter) {
+      whereClause.roadmapId = roadmapFilter;
+    }
+
     const { count, rows } = await Transaction.findAndCountAll({
+      where: whereClause,
       limit: perPage,
       offset,
       order: [["txDate", "DESC"]],
@@ -81,6 +99,7 @@ const saveMultipleAssetTransactions = async (req: Request, res: Response) => {
   try {
     const multipleAssetTransactionAttributes: MultipleAssetTransactionAttributes =
       req.body;
+
     await Transaction.create({
       txDate: multipleAssetTransactionAttributes.txDate,
       txFee: multipleAssetTransactionAttributes.txFee,

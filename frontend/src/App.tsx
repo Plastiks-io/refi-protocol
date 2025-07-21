@@ -20,7 +20,7 @@ import { RootState } from "./redux/store";
 import { fetchRoadmaps, Roadmap, upsertRoadmap } from "./redux/roadmapSlice";
 import { fetchCompletedRoadmaps } from "./redux/completedRoadmapSlice";
 import { fetchArchivedRoadmaps } from "./redux/archivedRoadmapSlice";
-import { fetchTransactions } from "./redux/TransactionSlice";
+import { fetchTransactions, TransactionType } from "./redux/TransactionSlice";
 import Settings from "./components/admin/Setting";
 import { fetchAdmins } from "./redux/adminSlice";
 import Lend from "@/pages/dashboard/lend";
@@ -37,10 +37,11 @@ function App() {
     useSelector((state: RootState) => state.transactions);
 
   // Page change handler
-  const handlePageChange = (newPage: number) => {
-    // clamp to [1..totalPages]
-    const next = Math.max(1, Math.min(newPage, totalPages));
-    dispatch(fetchTransactions({ page: next, perPage }));
+  const handlePageChange = (
+    newPage: number,
+    filterType: TransactionType | TransactionType[]
+  ) => {
+    dispatch(fetchTransactions({ page: newPage, perPage, type: filterType }));
   };
 
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
@@ -79,8 +80,6 @@ function App() {
     if (isAdmin) {
       dispatch(fetchAdmins());
     }
-    dispatch(fetchTransactions({ page: 1, perPage }));
-
     // ✅ Socket.IO: listen for roadmap updates
     socket.on("roadmapUpdated", (fullRoadmap: Roadmap) => {
       dispatch(upsertRoadmap(fullRoadmap));
@@ -122,7 +121,7 @@ function App() {
                   path="/admin"
                   element={
                     <PrivateAdminRoute>
-                      <Admin transactions={transactions} />
+                      <Admin />
                     </PrivateAdminRoute>
                   }
                 />
@@ -147,7 +146,7 @@ function App() {
 
                 <Route
                   path="/roadmap/:roadmapId"
-                  element={<RoadmapDetails transactions={transactions} />}
+                  element={<RoadmapDetails />}
                 />
               </Routes>
             </main>
