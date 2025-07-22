@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 import axios from "axios";
 import { Transaction, TransactionType } from "../models/transaction.model.js";
 import { Request, Response } from "express";
+import { updateRefiContractQueue } from "../bull/queues.js";
 
 interface TransactionAttributes {
   txDate: Date;
@@ -19,6 +20,7 @@ interface MultipleAssetTransactionAttributes {
   txFee: number;
   plastikAmount: number;
   USDMAmount: number;
+  preId: string;
   roadmapId: string;
   plastikToken: string;
   usdmToken: string;
@@ -100,6 +102,13 @@ const saveMultipleAssetTransactions = async (req: Request, res: Response) => {
     const multipleAssetTransactionAttributes: MultipleAssetTransactionAttributes =
       req.body;
 
+    // before creating Transaction push job into updateRefiConract queue
+    const job = await updateRefiContractQueue.add("updateRefiContractQueue", {
+      preId: multipleAssetTransactionAttributes.preId,
+      roadmapId: multipleAssetTransactionAttributes.roadmapId,
+      txHash: multipleAssetTransactionAttributes.hash,
+    });
+
     await Transaction.create({
       txDate: multipleAssetTransactionAttributes.txDate,
       txFee: multipleAssetTransactionAttributes.txFee,
@@ -125,6 +134,7 @@ const saveMultipleAssetTransactions = async (req: Request, res: Response) => {
 
     res.status(200).json({
       message: "Transactions saved successfully for multiple assets",
+      jobId: job.id,
     });
   } catch (error) {
     console.error("Error saving transactions:", error);

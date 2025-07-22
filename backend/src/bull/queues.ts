@@ -28,6 +28,7 @@ export const updateRefiContractQueue = new Queue<RefiContractJob>(
   "updateRefiContractQueue",
   { connection }
 );
+
 export const updateStakeContractQueue = new Queue<StakeContractJob>(
   "updateStakeContractQueue",
   { connection }

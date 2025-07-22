@@ -1,21 +1,50 @@
+// updateStakeContract.worker.ts
 import { Job, Worker } from "bullmq";
 import { Cardano } from "../../utils/cardano.js";
 import { getIO } from "../../utils/socket.js";
 import { connection } from "../connection.js";
 import { StakeContractJob } from "../queues.js";
 
-new Worker<StakeContractJob>(
+const worker = new Worker<StakeContractJob>(
   "updateStakeContractQueue",
-  async (job: Job<StakeContractJob>) => {
+  async (job) => {
     const { txHash } = job.data;
-    const cardano = new Cardano();
-    await cardano.init();
 
-    // 2) check if transaction has been updated on-chain
-    const isUpdated = await cardano.updatedOnChain(txHash);
+    try {
+      const cardano = new Cardano();
+      await cardano.init();
 
-    // 3) emit it
-    getIO().emit("stakeContractUpdated", isUpdated);
+      // 1) check if transaction has been updated on-chain
+      const isUpdated = await cardano.updatedOnChain(txHash);
+
+      // 2) emit it
+      getIO().emit("stakeContractUpdated", isUpdated);
+
+      return { success: true, isUpdated };
+    } catch (error) {
+      console.error("❌ Worker error:", error);
+      throw error;
+    }
   },
-  { connection, concurrency: 1 }
+  {
+    connection,
+    concurrency: 1,
+  }
 );
+
+// Add event listeners for debugging
+worker.on("ready", () => {
+  console.log("👷 updateStakeContractQueue worker is ready");
+});
+
+worker.on("error", (err) => {
+  console.error("❌ updateStakeContractQueue worker error:", err);
+});
+
+worker.on("failed", (job, err) => {
+  console.error(`❌ Job ${job?.id} failed:`, err);
+});
+
+worker.on("completed", (job, result) => {
+  console.log(`✅ Job ${job.id} completed:`, result);
+});

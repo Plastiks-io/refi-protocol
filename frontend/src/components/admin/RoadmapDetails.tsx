@@ -63,14 +63,9 @@ const RoadmapDetails: React.FC = () => {
     ...archivedRoadmaps,
   ];
 
-  const {
-    transactions,
-    loading: txLoading,
-    error: txError,
-    page,
-    perPage,
-    totalPages,
-  } = useSelector((state: RootState) => state.transactions);
+  const { transactions, page, totalPages } = useSelector(
+    (state: RootState) => state.transactions
+  );
 
   // Find the single roadmap matching `roadmapId`
   const roadmap = allRoadmaps.find((r) => r.roadmapId === roadmapId);

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useCardanoData } from "@/contexts/cardanoContexts";
+import axios from "axios";
+import { socket } from "@/socket";
 
 export default function Lend() {
   // on‑chain values
@@ -20,13 +22,26 @@ export default function Lend() {
   const wallet = useContext(WalletContext);
   const { roadmaps } = useSelector((state: RootState) => state.roadmaps);
 
+  // Fetch balances and setup socket listener
   useEffect(() => {
     if (wallet === null) {
       setPlastikHoldings(0);
-      return;
+    } else {
+      fetchBalances();
     }
-    fetchBalances();
-  }, [wallet]);
+
+    // ✅ Socket.IO: listen for roadmap updates and smart contract datum updates
+    socket.on("stakeContractUpdated", (isUpdated: boolean) => {
+      console.log("stakeContractUpdated", isUpdated);
+      if (isUpdated) {
+        refresh().catch(console.error);
+      }
+    });
+
+    return () => {
+      socket.off("stakeContractUpdated");
+    };
+  }, [wallet, refresh]);
 
   const handleLendTokens = async () => {
     const amount = parseInt(lendAmount, 10);
@@ -40,6 +55,12 @@ export default function Lend() {
       });
       setShowLendModal(false);
       setLendAmount("");
+      await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
+        {
+          txHash,
+        }
+      );
     } catch (error) {
       console.error("Error lending tokens:", error);
       toast.error(
@@ -73,6 +94,12 @@ export default function Lend() {
       });
       setShowWithdrawalWarning(false);
       setWithdrawAmount("");
+      await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
+        {
+          txHash,
+        }
+      );
     } catch (error) {
       console.error("Error withdrawing tokens:", error);
     }
@@ -91,6 +118,12 @@ export default function Lend() {
       toast.success("Tokens withdrawn successfully! " + txHash, {
         closeButton: true,
       });
+      await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
+        {
+          txHash,
+        }
+      );
     } catch (error) {
       console.error(error);
       toast.error(

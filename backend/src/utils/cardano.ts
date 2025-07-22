@@ -409,17 +409,14 @@ export class Cardano {
         stakeCred
       );
 
-      const precision = 1_000_000n;
-      const ptUnit = process.env.PLASTIC_TOKEN!;
-      const fundsMissing = (
-        ((utxo.assets[ptUnit] ?? 0n) * precision) /
-        100n
-      ).toString();
+      const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
+      const ptAssetUnit = process.env.PLASTIC_TOKEN!;
+      const fundsMissing =
+        ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
 
-      const usdmUnit = process.env.USDM_TOKEN!;
-      const fundsDistributed = (
-        (utxo.assets[usdmUnit] ?? 0n) / precision
-      ).toString();
+      const usdmAssetUnit: string = process.env.USDM_TOKEN!;
+      const fundsDistributed =
+        utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;
 
       // 3. Build and return the ProjectDatum
       return {
@@ -437,8 +434,8 @@ export class Cardano {
         recoveredPlastic: Number(fields[13] as bigint),
         createdAt: toText(fields[14] as string),
         status: "active",
-        fundsMissing,
-        fundsDistributed,
+        fundsMissing: fundsMissing.toString(),
+        fundsDistributed: fundsDistributed.toString(),
       };
     }
 

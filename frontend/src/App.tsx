@@ -80,7 +80,7 @@ function App() {
     if (isAdmin) {
       dispatch(fetchAdmins());
     }
-    // ✅ Socket.IO: listen for roadmap updates
+    // ✅ Socket.IO: listen for roadmap updates and smart contract datum updates
     socket.on("roadmapUpdated", (fullRoadmap: Roadmap) => {
       dispatch(upsertRoadmap(fullRoadmap));
     });

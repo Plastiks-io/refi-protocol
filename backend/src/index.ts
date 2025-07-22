@@ -22,7 +22,7 @@ import path from "path";
 const __filename = fileURLToPath(import.meta.url);
 
 // Initialize your BullMQ queue & worker
-import "./bull.js";
+import "./bull/index.js";
 
 export async function bootstrap(): Promise<void> {
   // 1. Seed Super‑Admin

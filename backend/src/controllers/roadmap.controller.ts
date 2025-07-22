@@ -826,7 +826,6 @@ const deleteArchivedRoadmap = async (req: Request, res: Response) => {
 export {
   initializeRoadmap,
   getAllActiveRoadmaps,
-  // updateRoadmap,
   saveRoadmap,
   queryTransaction,
   queryAddressHistory,

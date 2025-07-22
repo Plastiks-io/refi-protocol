@@ -677,6 +677,7 @@ export class Cardano {
           txFee: 2,
           plastikAmount: Number(sendPlastikToken),
           USDMAmount: Number(USDMAmount),
+          preId,
           roadmapId,
           plastikToken: this.ptAssetUnit,
           usdmToken: this.usdmAssetUnit,

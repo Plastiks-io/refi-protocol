@@ -11,8 +11,8 @@ new Worker<RefiContractJob>(
     const cardano = new Cardano();
     await cardano.init();
 
-    // 1) wait until Tx is definitely in a block (poll or confirmations)
-    await cardano.getLucid().awaitTx(txHash);
+    // 1) check if transaction has been updated on-chain
+    await cardano.updatedOnChain(txHash);
 
     // 2) fetch the fresh ReFi datum
     const updatedDatum = await cardano.getRoadmapDatum(preId, roadmapId);
