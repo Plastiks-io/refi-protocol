@@ -1,13 +1,19 @@
-import { Validator } from "lucid-cardano";
-import dotenv from "dotenv";
-dotenv.config();
+// src/contract/contracts.ts
 
-export const stakeRewardValidator: Validator = {
-  type: "PlutusV2",
-  script: process.env.STAKE_REWARD_CBOR!,
+function getRequiredEnvVar(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  return value;
+}
+
+export const stakeRewardValidator = {
+  type: "PlutusV2" as const,
+  script: getRequiredEnvVar("STAKE_REWARD_CBOR"),
 };
 
-export const refiValidator: Validator = {
-  type: "PlutusV2",
-  script: process.env.REFI_CBOR!,
+export const refiValidator = {
+  type: "PlutusV2" as const,
+  script: getRequiredEnvVar("REFI_CBOR"),
 };

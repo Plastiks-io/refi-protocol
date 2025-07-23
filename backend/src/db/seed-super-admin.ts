@@ -1,5 +1,4 @@
 // src/db/seed-super-admin.ts
-import bcrypt from "bcrypt";
 import { Admin, Role } from "../models/admin.model.js";
 import dotenv from "dotenv";
 dotenv.config();

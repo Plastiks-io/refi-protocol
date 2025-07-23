@@ -1,9 +1,56 @@
-import { DataTypes, Model } from "sequelize";
+// src/models/completedRoadmap.model.ts
+
+import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../db/config.js";
 
-// Define the model for completed roadmaps
-class CompletedRoadmap extends Model {}
+// 1. List all columns in your table
+export interface CompletedRoadmapAttributes {
+  id: string;
+  preId: string;
+  roadmapId: string;
+  roadmapName: string;
+  roadmapDescription: string;
+  progress: number;
+  preAddress: string;
+  totalPlasticCredits: number;
+  soldPlasticCredits: number;
+  totalPlasticTokens: number;
+  sentPlasticTokens: number;
+  totalPlastic: number;
+  recoveredPlastic: number;
+  createdAt: Date;
+  status: string;
+}
 
+// 2. For `.create()` and `.build()`, which fields are optional?
+//    id, createdAt, and status have default values
+export interface CompletedRoadmapCreationAttributes
+  extends Optional<CompletedRoadmapAttributes, "id" | "createdAt" | "status"> {}
+
+// 3. Extend Model with those two interfaces
+export class CompletedRoadmap
+  extends Model<CompletedRoadmapAttributes, CompletedRoadmapCreationAttributes>
+  implements CompletedRoadmapAttributes
+{
+  // Declare attributes without creating public class fields
+  declare id: string;
+  declare preId: string;
+  declare roadmapId: string;
+  declare roadmapName: string;
+  declare roadmapDescription: string;
+  declare progress: number;
+  declare preAddress: string;
+  declare totalPlasticCredits: number;
+  declare soldPlasticCredits: number;
+  declare totalPlasticTokens: number;
+  declare sentPlasticTokens: number;
+  declare totalPlastic: number;
+  declare recoveredPlastic: number;
+  declare readonly createdAt: Date;
+  declare status: string;
+}
+
+// 4. Initialize your model
 CompletedRoadmap.init(
   {
     id: {

@@ -3,8 +3,6 @@ import {
   initializeRoadmap,
   getAllActiveRoadmaps,
   saveRoadmap,
-  queryTransaction,
-  queryAddressHistory,
   getAllCompletedRoadmaps,
   saveArchivedRoadmap,
   restoreRoadmap,
@@ -20,8 +18,6 @@ const router = express.Router();
 router.get("/all", getAllActiveRoadmaps);
 router.post("/initialize", initializeRoadmap);
 router.post("/save", saveRoadmap);
-router.post("/query/txs", queryTransaction);
-router.post("/history/addr", queryAddressHistory);
 router.get("/completed/all", getAllCompletedRoadmaps);
 
 // To archived admin permission is required
