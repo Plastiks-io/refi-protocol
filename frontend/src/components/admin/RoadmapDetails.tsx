@@ -159,6 +159,12 @@ const RoadmapDetails: React.FC = () => {
       });
       // After successful release, remove from active roadmaps
       dispatch(removeRoadmap(roadmap.roadmapId));
+      await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
+        {
+          txHash,
+        }
+      );
       // Also add in completed roadmaps
       navigate("/"); // go back to /
     } catch (error) {
@@ -259,6 +265,12 @@ const RoadmapDetails: React.FC = () => {
         closeButton: true,
       });
       console.log("Transaction Hash:", txHash);
+      await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
+        {
+          txHash,
+        }
+      );
     } catch (err: Error | any) {
       console.error("Error sending stablecoins to escrow:", err);
       setLoading(false);

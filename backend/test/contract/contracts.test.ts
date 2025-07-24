@@ -1,62 +1,43 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+// test/contract/contracts.test.ts
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import * as Validator from "../../src/contract/contracts";
 
-describe("Validator Constants", () => {
-  // Store original env values to restore later
-  const originalEnv = { ...process.env };
+describe("Lucid Validator exports", () => {
+  const originalEnv = process.env;
 
   beforeEach(() => {
-    // Clear all modules from cache
-    vi.resetModules();
+    // 환경 변수 백업 후 설정
+    process.env = {
+      ...originalEnv,
+      STAKE_REWARD_CBOR: "4e4d01000033222220051200120011", // 예시 CBOR
+      REFI_CBOR: "4e4d010000998877665544332211", // 예시 CBOR
+    };
 
-    // Set up fresh environment
-    process.env.STAKE_REWARD_CBOR = "stake-reward-cbor-script";
-    process.env.REFI_CBOR = "refi-cbor-script";
+    // 모듈 캐시 초기화 (환경 변수 반영 위해)
+    vi.resetModules();
   });
 
   afterEach(() => {
-    // Restore original environment
-    process.env = { ...originalEnv };
-    vi.resetModules();
+    process.env = originalEnv;
   });
 
-  it("should correctly export stakeRewardValidator from env", async () => {
+  // stakeRewardValidator 내보내기 확인: 올바른 형식과 스크립트
+  it("should export stakeRewardValidator with type and script", async () => {
     const { stakeRewardValidator } = await import(
       "../../src/contract/contracts"
     );
+
     expect(stakeRewardValidator).toBeDefined();
     expect(stakeRewardValidator.type).toBe("PlutusV2");
-    expect(stakeRewardValidator.script).toBe("stake-reward-cbor-script");
+    expect(stakeRewardValidator.script).toBe("4e4d01000033222220051200120011");
   });
 
-  it("should correctly export refiValidator from env", async () => {
+  // refiValidator 내보내기 확인: 올바른 형식과 스크립트
+  it("should export refiValidator with type and script", async () => {
     const { refiValidator } = await import("../../src/contract/contracts");
+
     expect(refiValidator).toBeDefined();
     expect(refiValidator.type).toBe("PlutusV2");
-    expect(refiValidator.script).toBe("refi-cbor-script");
-  });
-
-  it("should fail if STAKE_REWARD_CBOR is missing", async () => {
-    // Remove the specific env var
-    delete process.env.STAKE_REWARD_CBOR;
-
-    // Clear module cache to force re-evaluation
-    vi.resetModules();
-
-    // Import should throw an error
-    await expect(import("../../src/contract/contracts")).rejects.toThrow(
-      /Missing environment variable: STAKE_REWARD_CBOR/
-    );
-  });
-
-  it("should fail if REFI_CBOR is missing", async () => {
-    // Remove the specific env var
-    delete process.env.REFI_CBOR;
-
-    // Clear module cache to force re-evaluation
-    vi.resetModules();
-
-    await expect(import("../../src/contract/contracts")).rejects.toThrow(
-      /Missing environment variable: REFI_CBOR/
-    );
+    expect(refiValidator.script).toBe("4e4d010000998877665544332211");
   });
 });

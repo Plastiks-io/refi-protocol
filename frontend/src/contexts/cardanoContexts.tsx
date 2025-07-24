@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { cardanoClient } from "@/services/cardano";
 import type { BrowserWallet } from "@meshsdk/core";
-import { socket } from "@/socket";
+import { socket } from "@/socket/socket";
 
 type State = {
   data: { staked: bigint; rewardDebt: bigint } | null;

@@ -1,61 +1,89 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom";
+import { useNavigate } from "react-router-dom";
 import RoadmapCard from "../../src/components/RoadmapCard";
-import { describe, it, expect } from "vitest";
+import type { Roadmap } from "../../src/redux/roadmapSlice";
 
-const baseProps = {
-  preId: "pre1",
-  roadmapId: "roadmap1",
-  roadmapName: "Test Roadmap",
-  roadmapDescription: "This is a test roadmap.",
-  progress: 75,
-  totalPlasticCredits: 1000,
-  soldPlasticCredits: 500,
-  totalPlasticTokens: 2000,
-  sentPlasticTokens: 1000,
-  totalPlastic: 3000,
-  recoveredPlastic: 1500,
-};
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: vi.fn(),
+  };
+});
 
-describe("RoadmapCard", () => {
-  it("renders roadmap name and description", () => {
-    render(<RoadmapCard {...baseProps} />);
+describe("RoadmapCard Component", () => {
+  const mockNavigate = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
+  });
+
+  const sampleRoadmap: Roadmap = {
+    roadmapId: "rmp-123",
+    roadmapName: "Test Roadmap",
+    roadmapDescription: "This is a test description.",
+    progress: 80,
+    totalPlasticCredits: 1000,
+    soldPlasticCredits: 800,
+    totalPlasticTokens: 5000,
+    sentPlasticTokens: 2000,
+    totalPlastic: 100,
+    recoveredPlastic: 75,
+    preId: "",
+    preAddress: "",
+    createdAt: "",
+    status: "",
+    fundsMissing: "",
+    fundsDistributed: "",
+  };
+
+  it("renders all roadmap details correctly", () => {
+    render(<RoadmapCard {...sampleRoadmap} />);
+
     expect(screen.getByText("Test Roadmap")).toBeInTheDocument();
-    expect(screen.getByText("This is a test roadmap.")).toBeInTheDocument();
-  });
-
-  it("shows 'In Progress' badge when progress < 100", () => {
-    render(<RoadmapCard {...baseProps} />);
+    expect(screen.getByText("This is a test description.")).toBeInTheDocument();
     expect(screen.getByText("In Progress")).toBeInTheDocument();
-  });
-
-  it("show 'Completed' badge when progress is 100", () => {
-    render(<RoadmapCard {...baseProps} progress={100} />);
-    expect(screen.queryByText("Completed")).toBeInTheDocument();
-  });
-
-  it("renders progress percentage", () => {
-    render(<RoadmapCard {...baseProps} />);
-    expect(screen.getByText("75%")).toBeInTheDocument();
-  });
-
-  it("renders plastic, custody, and token details", () => {
-    render(<RoadmapCard {...baseProps} />);
-    expect(screen.getByText("Kg of Plastic: 1500/3000 kg")).toBeInTheDocument();
-    expect(screen.getByText("Money in custody: $500/1000")).toBeInTheDocument();
-    expect(screen.getByText("PLASTIK Tokens: 1000/2000")).toBeInTheDocument();
-  });
-
-  it("renders the View Details button", () => {
-    render(<RoadmapCard {...baseProps} />);
+    expect(screen.getByText("Progress")).toBeInTheDocument();
+    expect(screen.getByText("80%")).toBeInTheDocument();
+    expect(screen.getByText("Kg of Plastic: 75/100 kg")).toBeInTheDocument();
+    expect(screen.getByText("Money in custody: $800/1000")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /view details/i })
+      screen.getByText("PLASTIK Tokens Transacted: 2000/5000")
     ).toBeInTheDocument();
+    expect(screen.getByText("View Details")).toBeInTheDocument();
   });
 
-  it("progress bar width matches progress prop", () => {
-    render(<RoadmapCard {...baseProps} progress={60} />);
-    const progressBar = screen.getByRole("progressbar", { hidden: true });
-    expect(progressBar).toHaveStyle({ width: "60" });
+  it("shows 'Completed' when progress is 100", () => {
+    render(<RoadmapCard {...sampleRoadmap} progress={100} />);
+    expect(screen.getByText("Completed")).toBeInTheDocument();
+  });
+
+  it("navigates to the correct route on button click", () => {
+    render(<RoadmapCard {...sampleRoadmap} />);
+    fireEvent.click(screen.getByText("View Details"));
+    expect(mockNavigate).toHaveBeenCalledWith("/roadmap/rmp-123");
+  });
+
+  it("has a progressbar element", () => {
+    render(<RoadmapCard {...sampleRoadmap} />);
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+  });
+
+  it("handles undefined or null values gracefully", () => {
+    const brokenProps = {
+      ...sampleRoadmap,
+      recoveredPlastic: null as any,
+      soldPlasticCredits: undefined as any,
+      sentPlasticTokens: NaN,
+    };
+
+    render(<RoadmapCard {...brokenProps} />);
+    expect(screen.getByText(/Kg of Plastic:/)).toBeInTheDocument();
+    expect(screen.getByText(/Money in custody:/)).toBeInTheDocument();
+    expect(screen.getByText(/PLASTIK Tokens Transacted:/)).toBeInTheDocument();
   });
 });

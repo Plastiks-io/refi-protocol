@@ -1,80 +1,75 @@
+import React from "react";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import StatsCard from "../../src/components/StatsCard";
-import { faCoffee } from "@fortawesome/free-solid-svg-icons";
-import React from "react";
+import "@testing-library/jest-dom";
+describe("StatsCard Component", () => {
+  it("renders title, value, description, and icon", () => {
+    render(
+      <StatsCard
+        title="Total Revenue"
+        value="$10,000"
+        description="Compared to last month"
+        icon="/icons/revenue.svg"
+        width="1/3"
+      />
+    );
 
-describe("StatsCard", () => {
-    it("renders title and value", () => {
-        render(
-            <StatsCard
-                title="Test Title"
-                value="123"
-                icon={faCoffee}
-                width="1/4"
-            />
-        );
-        expect(screen.getByText("Test Title")).toBeInTheDocument();
-        expect(screen.getByText("123")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Total Revenue")).toBeInTheDocument();
+    expect(screen.getByText("$10,000")).toBeInTheDocument();
+    expect(screen.getByText("Compared to last month")).toBeInTheDocument();
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "src",
+      "/icons/revenue.svg"
+    );
+  });
 
-    it("renders description if provided", () => {
-        render(
-            <StatsCard
-                title="Title"
-                value="42"
-                description="This is a description"
-                icon={faCoffee}
-                width="1/3"
-            />
-        );
-        expect(screen.getByText("This is a description")).toBeInTheDocument();
-    });
+  it("does not render description if not provided", () => {
+    render(
+      <StatsCard
+        title="New Users"
+        value="1,200"
+        icon="/icons/users.svg"
+        width="1/4"
+      />
+    );
 
-    it("does not render description if not provided", () => {
-        render(
-            <StatsCard
-                title="Title"
-                value="42"
-                icon={faCoffee}
-                width="2/5"
-            />
-        );
-        expect(screen.queryByText("This is a description")).not.toBeInTheDocument();
-    });
+    expect(screen.getByText("New Users")).toBeInTheDocument();
+    expect(screen.getByText("1,200")).toBeInTheDocument();
+    expect(screen.queryByText(/Compared to/i)).not.toBeInTheDocument();
+  });
 
-    it("applies correct width class for 1/4", () => {
-        const { container } = render(
-            <StatsCard
-                title="Width Test"
-                value="1"
-                icon={faCoffee}
-                width="1/4"
-            />
-        );
-        expect(container.firstChild).toHaveClass("lg:w-1/4");
-    });
+  it("applies correct width class based on width prop", () => {
+    const { container } = render(
+      <StatsCard
+        title="Carbon Saved"
+        value="32kg"
+        description="Eco-friendly"
+        icon="/icons/carbon.svg"
+        width="2/5"
+      />
+    );
 
-    it("applies correct width class for 1/3", () => {
-        const { container } = render(
-            <StatsCard
-                title="Width Test"
-                value="2"
-                icon={faCoffee}
-                width="1/3"
-            />
-        );
-        expect(container.firstChild).toHaveClass("lg:w-1/3");
-    });
+    const card = container.firstChild as HTMLElement;
+    expect(card.className).toContain("lg:w-2/5");
+  });
 
-    it("applies correct width class for 2/5", () => {
-        const { container } = render(
-            <StatsCard
-                title="Width Test"
-                value="3"
-                icon={faCoffee}
-                width="2/5"
-            />
-        );
-        expect(container.firstChild).toHaveClass("lg:w-2/5");
+  it("supports all valid width options", () => {
+    const widths = ["1/4", "1/3", "2/5", "12/25"] as const;
+
+    widths.forEach((width) => {
+      const { container, unmount } = render(
+        <StatsCard
+          title="Demo"
+          value="Test"
+          icon="/icons/demo.svg"
+          width={width}
+        />
+      );
+
+      const card = container.firstChild as HTMLElement;
+      expect(card.className).toContain(`lg:w-${width}`);
+      unmount();
     });
+  });
 });

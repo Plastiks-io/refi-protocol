@@ -1,44 +1,64 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import Button from "../../src/components/Button";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
-import { vi } from "vitest";
+import { faCoffee } from "@fortawesome/free-solid-svg-icons";
 
+// 1. Renders correctly with each variant
 describe("Button component", () => {
-  it("renders with default variant and text", () => {
-    render(<Button>Click Me</Button>);
-    const button = screen.getByRole("button", { name: /click me/i });
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveClass("bg-gray-800");
+  const variants = [
+    "default",
+    "outline",
+    "dark",
+    "gray",
+    "userButton",
+  ] as const;
+
+  variants.forEach((variant) => {
+    it(`renders correctly with variant: ${variant}`, () => {
+      render(<Button variant={variant}>{variant} button</Button>);
+      expect(screen.getByText(`${variant} button`)).toBeInTheDocument();
+    });
   });
 
-  it("renders with outline variant", () => {
-    render(<Button variant="outline">Outline</Button>);
-    const button = screen.getByRole("button", { name: /outline/i });
-    expect(button).toHaveClass("border", "text-gray-600");
+  // 2. Renders with an icon
+  it("renders with an icon when icon prop is provided", () => {
+    render(<Button icon={faCoffee}>With Icon</Button>);
+    expect(screen.getByText("With Icon")).toBeInTheDocument();
+    expect(document.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("renders with icon and text", () => {
-    render(<Button icon={faCheck}>Save</Button>);
-    const button = screen.getByRole("button", { name: /save/i });
-    expect(button.querySelector("svg")).toBeInTheDocument();
+  // 3. Renders children correctly
+  it("renders children (text) properly", () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByText("Click me")).toBeInTheDocument();
   });
 
-  it("supports onClick event", async () => {
-    const user = userEvent.setup();
+  // 4. Calls onClick when clicked
+  it("calls onClick handler when clicked", () => {
     const handleClick = vi.fn();
-
-    render(<Button onClick={handleClick}>Press</Button>);
-    const button = screen.getByRole("button", { name: /press/i });
-
-    await user.click(button);
+    render(<Button onClick={handleClick}>Click</Button>);
+    fireEvent.click(screen.getByText("Click"));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
-  it("applies additional class names", () => {
-    render(<Button className="custom-class">Extra</Button>);
-    const button = screen.getByRole("button", { name: /extra/i });
-    expect(button).toHaveClass("custom-class");
+  // 5. Does not call onClick if disabled
+  it("does not call onClick when button is disabled", () => {
+    const handleClick = vi.fn();
+    render(
+      <Button onClick={handleClick} disabled>
+        Disabled
+      </Button>
+    );
+    fireEvent.click(screen.getByText("Disabled"));
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  // 6. Does not render icon when icon is not passed
+  it("does not render icon when icon prop is not passed", () => {
+    render(<Button>No Icon</Button>);
+    expect(screen.getByText("No Icon")).toBeInTheDocument();
+    expect(document.querySelector("svg")).not.toBeInTheDocument();
   });
 });

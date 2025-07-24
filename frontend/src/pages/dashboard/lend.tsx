@@ -7,11 +7,10 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useCardanoData } from "@/contexts/cardanoContexts";
 import axios from "axios";
-import { socket } from "@/socket";
 
 export default function Lend() {
   // on‑chain values
-  const { data, refresh } = useCardanoData();
+  const { data } = useCardanoData();
   // local UI state
   const [showWithdrawalWarning, setShowWithdrawalWarning] = useState(false);
   const [showLendModal, setShowLendModal] = useState(false);
@@ -21,7 +20,6 @@ export default function Lend() {
 
   const wallet = useContext(WalletContext);
   const { roadmaps } = useSelector((state: RootState) => state.roadmaps);
-
   // Fetch balances and setup socket listener
   useEffect(() => {
     if (wallet === null) {
@@ -29,19 +27,7 @@ export default function Lend() {
     } else {
       fetchBalances();
     }
-
-    // ✅ Socket.IO: listen for roadmap updates and smart contract datum updates
-    socket.on("stakeContractUpdated", (isUpdated: boolean) => {
-      console.log("stakeContractUpdated", isUpdated);
-      if (isUpdated) {
-        refresh().catch(console.error);
-      }
-    });
-
-    return () => {
-      socket.off("stakeContractUpdated");
-    };
-  }, [wallet, refresh]);
+  }, [wallet]);
 
   const handleLendTokens = async () => {
     const amount = parseInt(lendAmount, 10);

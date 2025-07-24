@@ -1,54 +1,47 @@
-import React from "react";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import React from "react";
 import CardContent from "../../../src/components/admin/CardContent";
-
+import "@testing-library/jest-dom"; // Import jest-dom matchers
 describe("CardContent", () => {
-  it("renders title and value", () => {
-    render(<CardContent title="Test Title" value="123" />);
-    expect(screen.getByText("Test Title")).toBeInTheDocument();
-    expect(screen.getByText("123")).toBeInTheDocument();
+  it("renders title and value correctly", () => {
+    render(<CardContent title="Total Users" value={1500} />);
+    expect(screen.getByText("Total Users")).toBeInTheDocument();
+    expect(screen.getByText("1500")).toBeInTheDocument();
   });
 
   it("renders subtitle when provided", () => {
-    render(<CardContent title="Title" value="Value" subtitle="Subtitle" />);
-    expect(screen.getByText("Subtitle")).toBeInTheDocument();
+    render(<CardContent title="Revenue" value="$20K" subtitle="This Month" />);
+    expect(screen.getByText("This Month")).toBeInTheDocument();
   });
 
   it("does not render subtitle when not provided", () => {
-    render(<CardContent title="Title" value="Value" />);
-    expect(screen.queryByText("Subtitle")).not.toBeInTheDocument();
+    render(<CardContent title="Users" value="250" />);
+    const subtitle = screen.queryByText(
+      (content, node) => !!node?.classList.contains("text-gray-400")
+    );
+    expect(subtitle).not.toBeInTheDocument();
   });
 
-  it("renders progress bar when progress is provided", () => {
-    render(<CardContent title="Title" value="Value" progress={75} />);
-    const progressBar = screen.getByRole("presentation", { hidden: true });
-    expect(progressBar).toBeInTheDocument();
-    expect(progressBar).toHaveStyle({ width: "75%" });
+  it("renders progress bar with correct width", () => {
+    render(<CardContent title="Progress" value="70%" progress={70} />);
+    const progressBar = screen.getByRole("presentation");
+    expect(progressBar).toHaveStyle("width: 70%");
   });
 
-  it("does not render progress bar when progress is not provided", () => {
-    const { container } = render(<CardContent title="Title" value="Value" />);
-    const progressBar = container.querySelector(".bg-black.h-2.rounded");
+  it("does not render progress bar when progress is undefined", () => {
+    render(<CardContent title="Tasks" value="5" />);
+    const progressBar = screen.queryByRole("presentation");
     expect(progressBar).not.toBeInTheDocument();
   });
 
-  it("renders numeric value", () => {
-    render(<CardContent title="Title" value={42} />);
-    expect(screen.getByText("42")).toBeInTheDocument();
+  it("supports value as a string", () => {
+    render(<CardContent title="Status" value="Complete" />);
+    expect(screen.getByText("Complete")).toBeInTheDocument();
   });
 
-  it("applies correct classes", () => {
-    render(<CardContent title="Title" value="Value" />);
-    expect(screen.getByText("Title")).toHaveClass(
-      "text-gray-600",
-      "text-sm",
-      "font-medium",
-      "mb-1"
-    );
-    expect(screen.getByText("Value")).toHaveClass(
-      "text-xl",
-      "font-bold",
-      "text-black"
-    );
+  it("supports value as a number", () => {
+    render(<CardContent title="Score" value={95} />);
+    expect(screen.getByText("95")).toBeInTheDocument();
   });
 });

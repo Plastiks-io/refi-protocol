@@ -1,5 +1,5 @@
 // updateStakeContract.worker.ts
-import { Job, Worker } from "bullmq";
+import { Worker } from "bullmq";
 import { Cardano } from "../../utils/cardano.js";
 import { getIO } from "../../utils/socket.js";
 import { connection } from "../connection.js";
@@ -9,6 +9,7 @@ const worker = new Worker<StakeContractJob>(
   "updateStakeContractQueue",
   async (job) => {
     const { txHash } = job.data;
+    console.log("👷 updateStakeContractQueue worker processing job", txHash);
 
     try {
       const cardano = new Cardano();

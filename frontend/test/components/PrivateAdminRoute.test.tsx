@@ -1,98 +1,85 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render } from "@testing-library/react";
-import PrivateAdminRoute from "../../src/components/PrivateAdminRoute";
 import React from "react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
+import PrivateAdminRoute from "../../src/components/PrivateAdminRoute";
 
-// Mock useSelector and import.meta.env
-vi.mock("react-redux", () => ({
-  useSelector: vi.fn(),
-}));
-
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<any>("react-router-dom");
+vi.mock("react-redux", async () => {
+  const actual = await vi.importActual("react-redux");
   return {
     ...actual,
-    Navigate: ({ to }: { to: string }) => <div>Navigate to {to}</div>,
+    useSelector: vi.fn(),
   };
 });
 
-describe("PrivateAdminRoute", () => {
-  const OLD_ENV = { ...import.meta.env };
-
+describe("PrivateAdminRoute Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    Object.assign(import.meta, { env: { ...OLD_ENV } });
   });
 
-  it("renders children if walletAddress matches admin address (case-insensitive)", () => {
-    import.meta.env.VITE_ADMIN_WALLET_ADDRESS || "0xAdmin";
-    (useSelector as any).mockImplementation((fn: any) =>
-      fn({ wallet: { walletAddress: "0xadmin" } })
+  it("renders children when role is ADMIN", () => {
+    (useSelector as any).mockImplementation((selector: any) =>
+      selector({ auth: { role: "ADMIN" } })
     );
 
-    const { getByText } = render(
-      <PrivateAdminRoute>
-        <div>Admin Content</div>
-      </PrivateAdminRoute>
+    render(
+      <MemoryRouter>
+        <PrivateAdminRoute>
+          <div>Admin Content</div>
+        </PrivateAdminRoute>
+      </MemoryRouter>
     );
-    expect(getByText("Navigate to /")).toBeTruthy();
+
+    expect(screen.getByText("Admin Content")).toBeInTheDocument();
   });
 
-  it("navigates to / if walletAddress does not match admin address", () => {
-    import.meta.env.VITE_ADMIN_WALLET_ADDRESS || "0xAdmin";
-    (useSelector as any).mockImplementation((fn: any) =>
-      fn({ wallet: { walletAddress: "0xUser" } })
+  it("renders children when role is SUPER_ADMIN", () => {
+    (useSelector as any).mockImplementation((selector: any) =>
+      selector({ auth: { role: "SUPER_ADMIN" } })
     );
 
-    const { getByText } = render(
-      <PrivateAdminRoute>
-        <div>Admin Content</div>
-      </PrivateAdminRoute>
+    render(
+      <MemoryRouter>
+        <PrivateAdminRoute>
+          <div>Super Admin Content</div>
+        </PrivateAdminRoute>
+      </MemoryRouter>
     );
-    expect(getByText("Navigate to /")).toBeTruthy();
+
+    expect(screen.getByText("Super Admin Content")).toBeInTheDocument();
   });
 
-  it("navigates to / if walletAddress is undefined", () => {
-    import.meta.env.VITE_ADMIN_WALLET_ADDRESS || "0xAdmin";
-    (useSelector as any).mockImplementation((fn: any) =>
-      fn({ wallet: { walletAddress: undefined } })
+  it("redirects to '/' when role is not admin", () => {
+    (useSelector as any).mockImplementation((selector: any) =>
+      selector({ auth: { role: "USER" } })
     );
 
-    const { getByText } = render(
-      <PrivateAdminRoute>
-        <div>Admin Content</div>
-      </PrivateAdminRoute>
+    render(
+      <MemoryRouter initialEntries={["/admin"]}>
+        <PrivateAdminRoute>
+          <div>Should not render</div>
+        </PrivateAdminRoute>
+      </MemoryRouter>
     );
-    expect(getByText("Navigate to /")).toBeTruthy();
+
+    expect(screen.queryByText("Should not render")).not.toBeInTheDocument();
   });
 
-  it("navigates to / if VITE_ADMIN_WALLET_ADDRESS is undefined", () => {
-    import.meta.env.VITE_ADMIN_WALLET_ADDRESS || undefined;
-    (useSelector as any).mockImplementation((fn: any) =>
-      fn({ wallet: { walletAddress: "0xAdmin" } })
+  it("redirects to '/' when role is null", () => {
+    (useSelector as any).mockImplementation((selector: any) =>
+      selector({ auth: { role: null } })
     );
 
-    const { getByText } = render(
-      <PrivateAdminRoute>
-        <div>Admin Content</div>
-      </PrivateAdminRoute>
-    );
-    expect(getByText("Navigate to /")).toBeTruthy();
-  });
-
-  it("navigates to / if both walletAddress and VITE_ADMIN_WALLET_ADDRESS are undefined", () => {
-    import.meta.env.VITE_ADMIN_WALLET_ADDRESS || undefined;
-    (useSelector as any).mockImplementation((fn: any) =>
-      fn({ wallet: { walletAddress: undefined } })
+    render(
+      <MemoryRouter initialEntries={["/admin"]}>
+        <PrivateAdminRoute>
+          <div>Unauthorized</div>
+        </PrivateAdminRoute>
+      </MemoryRouter>
     );
 
-    const { getByText } = render(
-      <PrivateAdminRoute>
-        <div>Admin Content</div>
-      </PrivateAdminRoute>
-    );
-    expect(getByText("Navigate to /")).toBeTruthy();
+    expect(screen.queryByText("Unauthorized")).not.toBeInTheDocument();
   });
 });

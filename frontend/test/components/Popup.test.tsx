@@ -1,72 +1,58 @@
 import React from "react";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import Popup from "../../src/components/Popup";
-import { vi } from "vitest";
+import "@testing-library/jest-dom"; // ✅ Required for toBeInTheDocument()
 
-const wallets = [
+const mockWallets = [
   {
-    icon: "icon1.png",
-    id: "wallet1",
-    name: "Wallet One",
+    id: "nami",
+    name: "Nami Wallet",
     version: "1.0.0",
+    icon: "https://example.com/nami.png",
   },
   {
-    icon: "icon2.png",
-    id: "wallet2",
-    name: "Wallet Two",
-    version: "2.1.0",
+    id: "eternl",
+    name: "Eternl Wallet",
+    version: "1.2.3",
+    icon: "https://example.com/eternl.png",
   },
 ];
 
-describe("Popup", () => {
-  it("renders the popup with title and wallets", () => {
-    render(
-      <Popup wallets={wallets} onSelectWallet={vi.fn()} onClose={vi.fn()} />
-    );
-    expect(screen.getByText("Select a Wallet")).toBeInTheDocument();
-    expect(screen.getByText("Wallet One")).toBeInTheDocument();
-    expect(screen.getByText("Wallet Two")).toBeInTheDocument();
-    expect(screen.getByText("v1.0.0")).toBeInTheDocument();
-    expect(screen.getByText("v2.1.0")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument();
-  });
-
-  it("calls onSelectWallet with correct id when a wallet is clicked", () => {
-    const onSelectWallet = vi.fn();
+describe("Popup Component", () => {
+  it("renders wallet options correctly", () => {
     render(
       <Popup
-        wallets={wallets}
-        onSelectWallet={onSelectWallet}
-        onClose={vi.fn()}
+        wallets={mockWallets}
+        onSelectWallet={() => {}}
+        onClose={() => {}}
       />
     );
-    fireEvent.click(screen.getByText("Wallet Two"));
-    expect(onSelectWallet).toHaveBeenCalledWith("wallet2");
-  });
 
-  it("calls onClose when the close button is clicked", () => {
-    const onClose = vi.fn();
-    render(
-      <Popup wallets={wallets} onSelectWallet={vi.fn()} onClose={onClose} />
-    );
-    fireEvent.click(screen.getByRole("button", { name: /close/i }));
-    expect(onClose).toHaveBeenCalled();
-  });
+    expect(screen.getByText("Connect Wallet")).toBeInTheDocument();
+    expect(screen.getByText("Nami Wallet")).toBeInTheDocument();
+    expect(screen.getByText("Eternl Wallet")).toBeInTheDocument();
 
-  it("renders no wallets if wallets array is empty", () => {
-    render(<Popup wallets={[]} onSelectWallet={vi.fn()} onClose={vi.fn()} />);
-    expect(screen.queryByText("Wallet One")).not.toBeInTheDocument();
-    expect(screen.queryByText("Wallet Two")).not.toBeInTheDocument();
-  });
-
-  it("renders wallet icons with correct src and alt", () => {
-    render(
-      <Popup wallets={wallets} onSelectWallet={vi.fn()} onClose={vi.fn()} />
-    );
     const images = screen.getAllByRole("img");
-    expect(images[0]).toHaveAttribute("src", "icon1.png");
-    expect(images[0]).toHaveAttribute("alt", "Wallet One");
-    expect(images[1]).toHaveAttribute("src", "icon2.png");
-    expect(images[1]).toHaveAttribute("alt", "Wallet Two");
+    expect(images).toHaveLength(2);
+    expect(images[0]).toHaveAttribute("src", "https://example.com/nami.png");
+  });
+
+  it("calls onSelectWallet with correct ID on wallet click", () => {
+    const onSelectMock = vi.fn();
+
+    render(
+      <Popup
+        wallets={mockWallets}
+        onSelectWallet={onSelectMock}
+        onClose={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Nami Wallet"));
+    expect(onSelectMock).toHaveBeenCalledWith("nami");
+
+    fireEvent.click(screen.getByText("Eternl Wallet"));
+    expect(onSelectMock).toHaveBeenCalledWith("eternl");
   });
 });

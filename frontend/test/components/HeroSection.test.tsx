@@ -1,57 +1,106 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import HeroSection from "../../src/components/HeroSection";
-import { faDatabase, faFire, faLeaf } from "@fortawesome/free-solid-svg-icons";
 
-const stats = [
-  {
-    title: "Total Tokens Retired",
-    value: "234,567",
-    description: "+2.5% from last month",
-    icon: faFire,
-  },
-  {
-    title: "Stablecoins Available",
-    value: "$892,450",
-    description: "USDC + USDM",
-    icon: faDatabase,
-  },
-  {
-    title: "Plastic Recovered",
-    value: "45,678 kg",
-    description: "Equivalent to x amount of bottles",
-    icon: faLeaf,
-  },
+vi.mock("react-redux", async () => {
+  const actual = await vi.importActual("react-redux");
+  return {
+    ...actual,
+    useSelector: vi.fn(),
+  };
+});
+
+import { useSelector } from "react-redux";
+
+const mockActiveRoadmaps = [
+  { recoveredPlastic: 100, soldPlasticCredits: 10 },
+  { recoveredPlastic: 200, soldPlasticCredits: 20 },
 ];
-describe("HeroSection", () => {
+
+const mockCompletedRoadmaps = [
+  { recoveredPlastic: 300, soldPlasticCredits: 30 },
+  { recoveredPlastic: 400, soldPlasticCredits: 40 },
+];
+
+describe("HeroSection Component", () => {
   beforeEach(() => {
-    render(<HeroSection />);
-  });
-  it("renders the main heading", () => {
-    expect(
-      screen.getByRole("heading", {
-        name: /building a sustainable future with refi/i,
-      })
-    ).toBeInTheDocument();
+    vi.clearAllMocks();
+    Element.prototype.scrollIntoView = vi.fn(); // ✅ Fix scrollIntoView issue
   });
 
-  it("renders the description paragraph", () => {
-    expect(
-      screen.getByText(
-        /Plastiks ReFi Protocol ensures transparent and traceable funding/i
-      )
-    ).toBeInTheDocument();
-  });
-
-  it("renders the CTA button", () => {
-    expect(screen.getByRole("button", { name: /cta/i })).toBeInTheDocument();
-  });
-
-  it("renders all stats cards with correct titles, values and descriptions", () => {
-    stats.forEach(({ title, value, description }) => {
-      expect(screen.getByText(title)).toBeInTheDocument();
-      expect(screen.getByText(value)).toBeInTheDocument();
-      expect(screen.getByText(description)).toBeInTheDocument();
+  it("renders stats cards when data is available", () => {
+    (useSelector as any).mockImplementation((selectorFn: any) => {
+      return selectorFn({
+        roadmaps: {
+          roadmaps: mockActiveRoadmaps,
+          loading: false,
+          error: null,
+        },
+        completedRoadmaps: {
+          roadmaps: mockCompletedRoadmaps,
+          loading: false,
+          error: null,
+        },
+      });
     });
+
+    render(<HeroSection />);
+
+    expect(screen.getByText("Active Roadmaps")).toBeInTheDocument();
+    expect(screen.getByText("Total Completed Roadmaps")).toBeInTheDocument();
+    expect(screen.getByText("Plastic Recovered")).toBeInTheDocument();
+    expect(screen.getByText("1,000 kg")).toBeInTheDocument();
+    expect(screen.getByText("Funds in Escrow Wallet")).toBeInTheDocument();
+    expect(screen.getByText("30")).toBeInTheDocument();
+    expect(screen.getByText("Total Funding Distributed")).toBeInTheDocument();
+    expect(screen.getByText("70")).toBeInTheDocument();
+    expect(screen.getByText("Total Tokens Retired")).toBeInTheDocument();
+    expect(screen.getByText("140")).toBeInTheDocument();
+  });
+
+  it("shows error when error is present", () => {
+    (useSelector as any).mockImplementation((selectorFn: any) => {
+      return selectorFn({
+        roadmaps: {
+          roadmaps: [],
+          loading: false,
+          error: "Something went wrong",
+        },
+        completedRoadmaps: {
+          roadmaps: [],
+          loading: false,
+          error: null,
+        },
+      });
+    });
+
+    render(<HeroSection />);
+    expect(
+      screen.getByText("Failed to load stats. Please try again later.")
+    ).toBeInTheDocument();
+  });
+
+  it("scrolls to bottom when 'Roadmaps' button is clicked", () => {
+    (useSelector as any).mockImplementation((selectorFn: any) => {
+      return selectorFn({
+        roadmaps: {
+          roadmaps: [],
+          loading: false,
+          error: null,
+        },
+        completedRoadmaps: {
+          roadmaps: [],
+          loading: false,
+          error: null,
+        },
+      });
+    });
+
+    render(<HeroSection />);
+    const btn = screen.getByText("Roadmaps");
+    fireEvent.click(btn);
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled(); // ✅ Now succeeds
   });
 });

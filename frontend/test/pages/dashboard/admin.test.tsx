@@ -1,98 +1,188 @@
-import { describe, it, vi, beforeEach, Mock } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, vi, beforeEach, expect } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
-import { useSelector } from "react-redux";
-import Admin from "../../../src/pages/dashboard/admin";
-import axios from "axios";
+import "@testing-library/jest-dom";
 
-vi.mock("axios"); // Mock entire axios module
-(axios.post as Mock).mockResolvedValue({ data: "Success" });
+// ✅ Define createMockUseSelector before all mocks (to avoid hoisting issue)
+const createMockUseSelector =
+  (customState?: Partial<any>) => (selector: any) => {
+    const baseState = {
+      roadmaps: {
+        roadmaps: [
+          {
+            roadmapId: "1",
+            roadmapName: "Active Roadmap",
+            totalPlastic: 20,
+            createdAt: new Date("2023-01-01").toISOString(),
+          },
+        ],
+        loading: false,
+        error: null,
+      },
+      completedRoadmaps: {
+        roadmaps: [
+          {
+            roadmapId: "2",
+            roadmapName: "Completed Roadmap",
+            totalPlastic: 50,
+            createdAt: new Date("2022-01-01").toISOString(),
+          },
+        ],
+        loading: false,
+        error: null,
+      },
+      transactions: {
+        transactions: [],
+        page: 1,
+        perPage: 10,
+        totalPages: 2,
+      },
+    };
+    return selector({ ...baseState, ...customState });
+  };
 
-// Mock RoadmapRow component
+// ✅ Dynamic mock setup function to inject state
+const mockReactRedux = (customState?: Partial<any>) => {
+  vi.doMock("react-redux", async () => {
+    const actual = await vi.importActual("react-redux");
+    return {
+      ...actual,
+      useDispatch: () => vi.fn(),
+      useSelector: createMockUseSelector(customState),
+    };
+  });
+};
+
+// 🔁 Static mocks
+vi.mock("react-paginate", () => ({
+  __esModule: true,
+  default: ({ onPageChange }: any) => (
+    <button onClick={() => onPageChange({ selected: 1 })}>
+      Mock Pagination
+    </button>
+  ),
+}));
+
+vi.mock("../../../src/components/TransactionList", () => ({
+  __esModule: true,
+  default: () => <div data-testid="transaction-list">TransactionList</div>,
+}));
+
 vi.mock("../../../src/components/RoadmapRow", () => ({
   __esModule: true,
   default: (props: any) => (
     <tr data-testid="roadmap-row">
-      <td>{JSON.stringify(props)}</td>
+      <td>{props.roadmapName}</td>
     </tr>
   ),
 }));
 
-
-// Mock lucide-react icons
-vi.mock("lucide-react", () => ({
-  Loader: (props: any) => <svg data-testid="loader" {...props} />,
-  AlertCircle: (props: any) => <svg data-testid="alert-circle" {...props} />,
+vi.mock("../../../src/components/CheckboxFilterList", () => ({
+  __esModule: true,
+  default: ({ onChange }: any) => (
+    <div data-testid="filter-list">
+      <button onClick={() => onChange(["completed"])}>Completed Filter</button>
+    </div>
+  ),
 }));
 
-vi.mock("react-redux", async () => {
-  const actual = await vi.importActual<typeof import("react-redux")>(
-    "react-redux"
-  );
-  return {
-    ...actual,
-    useSelector: vi.fn(),
-  };
-});
+vi.mock("../../../src/redux/TransactionSlice", () => ({
+  fetchTransactions: vi.fn(),
+  TransactionType: {
+    Sold: "sold",
+    Transfer: "transfer",
+  },
+}));
 
-const mockUseSelector = useSelector as unknown as Mock;
-
-describe("Admin Dashboard Page", () => {
+describe("AdminPage", () => {
   beforeEach(() => {
+    vi.resetModules(); // Required to reset mocks between tests
     vi.clearAllMocks();
+    mockReactRedux(); // default mock setup
   });
 
-  it("renders loading state", () => {
-    mockUseSelector.mockImplementation((cb) =>
-      cb({ roadmaps: { roadmaps: [], loading: true, error: null } })
+  it("renders heading and initial content", async () => {
+    const { default: AdminPage } = await import(
+      "../../../src/pages/dashboard/admin"
     );
-    render(<Admin />);
-    expect(screen.getByTestId("loader")).toBeInTheDocument();
-    expect(screen.getByText(/Loading roadmaps/i)).toBeInTheDocument();
-  });
-
-  it("renders error state", () => {
-    mockUseSelector.mockImplementation((cb) =>
-      cb({ roadmaps: { roadmaps: [], loading: false, error: "Some error" } })
-    );
-    render(<Admin />);
-    expect(screen.getByTestId("alert-circle")).toBeInTheDocument();
-    expect(screen.getByText(/Failed to load roadmaps/i)).toBeInTheDocument();
-  });
-
-  it("renders empty state", () => {
-    mockUseSelector.mockImplementation((cb) =>
-      cb({ roadmaps: { roadmaps: [], loading: false, error: null } })
-    );
-    render(<Admin />);
-    expect(screen.getByTestId("alert-circle")).toBeInTheDocument();
-    expect(screen.getByText(/No roadmaps available/i)).toBeInTheDocument();
-  });
-
-it("renders roadmaps table with rows", () => {
-    const mockRoadmaps = [
-        { id: 1, name: "Roadmap 1", entity: "Entity 1" },
-        { id: 2, name: "Roadmap 2", entity: "Entity 2" },
-    ];
-    mockUseSelector.mockImplementation((cb) =>
-        cb({ roadmaps: { roadmaps: mockRoadmaps, loading: false, error: null } })
-    );
-    render(<Admin />);
-    // Use getAllByRole to avoid "Found multiple elements" error
-    const tables = screen.getAllByRole("table");
-    // The main table is the first one
-    expect(tables[0]).toBeInTheDocument();
-    expect(screen.getAllByTestId("roadmap-row")).toHaveLength(2);
-});
-
-  it("renders Transaction History section", () => {
-    mockUseSelector.mockImplementation((cb) =>
-      cb({ roadmaps: { roadmaps: [], loading: false, error: null } })
-    );
-    render(<Admin />);
-    expect(screen.getByText(/Transaction History/i)).toBeInTheDocument();
+    render(<AdminPage />);
+    expect(screen.getByText("Active Roadmaps")).toBeInTheDocument();
     expect(
-      screen.getByText(/Below is a record of recent transactions/i)
+      screen.getByText(/Below is a list of active roadmaps/i)
     ).toBeInTheDocument();
+  });
+
+  it("renders roadmap rows", async () => {
+    const { default: AdminPage } = await import(
+      "../../../src/pages/dashboard/admin"
+    );
+    render(<AdminPage />);
+    expect(screen.getByTestId("roadmap-row")).toBeInTheDocument();
+    expect(screen.getByText("Active Roadmap")).toBeInTheDocument();
+  });
+
+  it("shows the transaction list", async () => {
+    const { default: AdminPage } = await import(
+      "../../../src/pages/dashboard/admin"
+    );
+    render(<AdminPage />);
+    expect(screen.getByTestId("transaction-list")).toBeInTheDocument();
+  });
+
+  it("displays filter dropdown and updates filter on selection", async () => {
+    const { default: AdminPage } = await import(
+      "../../../src/pages/dashboard/admin"
+    );
+    render(<AdminPage />);
+    fireEvent.click(screen.getByText("Filter By"));
+    fireEvent.click(screen.getByText("Completed Filter"));
+    await waitFor(() => {
+      expect(screen.getByText("Completed Roadmap")).toBeInTheDocument();
+    });
+  });
+
+  it("handles pagination click", async () => {
+    const { default: AdminPage } = await import(
+      "../../../src/pages/dashboard/admin"
+    );
+    render(<AdminPage />);
+    fireEvent.click(screen.getByText("Mock Pagination"));
+    expect(screen.getByText("Mock Pagination")).toBeInTheDocument();
+  });
+
+  it("renders loading state", async () => {
+    mockReactRedux({
+      roadmaps: { roadmaps: [], loading: true, error: null },
+    });
+    const { default: AdminPage } = await import(
+      "../../../src/pages/dashboard/admin"
+    );
+    render(<AdminPage />);
+    expect(screen.getByText("Loading roadmaps...")).toBeInTheDocument();
+  });
+
+  it("renders error state", async () => {
+    mockReactRedux({
+      roadmaps: { roadmaps: [], loading: false, error: "Error loading" },
+    });
+    const { default: AdminPage } = await import(
+      "../../../src/pages/dashboard/admin"
+    );
+    render(<AdminPage />);
+    expect(
+      screen.getByText("Failed to load roadmaps. Please try again.")
+    ).toBeInTheDocument();
+  });
+
+  it("renders empty state", async () => {
+    mockReactRedux({
+      roadmaps: { roadmaps: [], loading: false, error: null },
+      completedRoadmaps: { roadmaps: [], loading: false, error: null },
+    });
+    const { default: AdminPage } = await import(
+      "../../../src/pages/dashboard/admin"
+    );
+    render(<AdminPage />);
+    expect(screen.getByText("No roadmaps available.")).toBeInTheDocument();
   });
 });

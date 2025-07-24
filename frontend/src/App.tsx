@@ -17,7 +17,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch } from "./redux/store";
 import { BrowserWallet } from "@meshsdk/core";
 import { RootState } from "./redux/store";
-import { fetchRoadmaps, Roadmap, upsertRoadmap } from "./redux/roadmapSlice";
+import { fetchRoadmaps } from "./redux/roadmapSlice";
 import { fetchCompletedRoadmaps } from "./redux/completedRoadmapSlice";
 import { fetchArchivedRoadmaps } from "./redux/archivedRoadmapSlice";
 import { fetchTransactions, TransactionType } from "./redux/TransactionSlice";
@@ -26,13 +26,12 @@ import { fetchAdmins } from "./redux/adminSlice";
 import Lend from "@/pages/dashboard/lend";
 import PrivateLendRoute from "./components/PrivateLendRoute";
 import { CardanoProvider } from "@/contexts/cardanoContexts";
+import SocketManager from "./socket/SocketManager";
 export const WalletContext = React.createContext<BrowserWallet | null>(null);
-
-import { socket } from "./socket"; // Socket.IO client instance
 
 function App() {
   const { walletId } = useSelector((state: RootState) => state.wallet);
-
+  // on‑chain values
   const { transactions, loading, error, page, perPage, totalPages } =
     useSelector((state: RootState) => state.transactions);
 
@@ -80,14 +79,6 @@ function App() {
     if (isAdmin) {
       dispatch(fetchAdmins());
     }
-    // ✅ Socket.IO: listen for roadmap updates and smart contract datum updates
-    socket.on("roadmapUpdated", (fullRoadmap: Roadmap) => {
-      dispatch(upsertRoadmap(fullRoadmap));
-    });
-
-    return () => {
-      socket.off("roadmapUpdated");
-    };
   }, [walletId, dispatch]);
 
   return (
@@ -95,6 +86,8 @@ function App() {
       <CardanoProvider wallet={wallet}>
         <Router>
           <div className="flex flex-col min-h-screen">
+            {/* Socket Manager - handles socket events */}
+            <SocketManager />
             {/* Navbar at the top */}
             <Navbar />
 

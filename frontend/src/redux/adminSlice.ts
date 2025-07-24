@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
 
-interface Admin {
+export interface Admin {
   id: string;
   address: string;
   role: "SUPER_ADMIN" | "ADMIN";

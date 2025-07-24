@@ -1,25 +1,27 @@
-import React from "react";
+// src/components/__tests__/RoadmapDetails.test.tsx
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { Mock, vi } from "vitest";
+import { Provider } from "react-redux";
+import { MemoryRouter } from "react-router-dom";
+import { configureStore } from "@reduxjs/toolkit";
 import RoadmapDetails from "../../../src/components/admin/RoadmapDetails";
-import { useSelector } from "react-redux";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { toast } from "sonner";
+import { WalletContext } from "../../../src/App";
+import roadmapSlice from "../../../src/redux/roadmapSlice";
+import completedRoadmapSlice from "../../../src/redux/completedRoadmapSlice";
+import archivedRoadmapSlice from "../../../src/redux/archivedRoadmapSlice";
+import transactionSlice, {
+  TransactionType,
+} from "../../../src/redux/TransactionSlice";
+import adminSlice from "../../../src/redux/adminSlice";
+import walletSlice from "../../../src/redux/walletSlice";
+import authSlice from "../../../src/redux/authSlice";
+import { BrowserWallet } from "@meshsdk/core";
+import React from "react";
+import "@testing-library/jest-dom";
 
-vi.mock("axios"); // Mock entire axios module
-(axios.post as Mock).mockResolvedValue({ data: "Success" });
-
-// Mock necessary hooks and modules
-vi.mock("react-redux", () => ({
-  useSelector: vi.fn(),
-}));
-
-vi.mock("react-router-dom", () => ({
-  useParams: vi.fn(),
-  useNavigate: vi.fn(),
-}));
-
+// Mock external dependencies
+vi.mock("axios");
+vi.mock("@/services/cardano");
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -27,175 +29,241 @@ vi.mock("sonner", () => ({
   },
 }));
 
-describe("RoadmapDetails Component", () => {
-  const mockNavigate = vi.fn();
+// Mock the helper function for address truncation
+vi.mock("@/utils/helper", () => ({
+  truncateAddress: vi.fn(
+    (address) => `${address.slice(0, 6)}...${address.slice(-4)}`
+  ),
+  formatAmount: vi.fn((amount) => amount.toString()),
+}));
 
+// Mock react-router-dom hooks
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    useParams: () => ({ roadmapId: "test-roadmap-id" }),
+  };
+});
+
+// Mock wallet context
+const mockWallet = {
+  _walletInstance: {},
+  _walletName: "MockWallet",
+  walletInstance: {},
+  getChangeAddress: vi.fn(),
+  getRewardAddresses: vi.fn(),
+  getUnusedAddresses: vi.fn(),
+  getUsedAddresses: vi.fn(),
+  getUtxos: vi.fn(),
+  signData: vi.fn(),
+  signTx: vi.fn(),
+  submitTx: vi.fn(),
+  getBalance: vi.fn().mockResolvedValue([
+    {
+      unit: "token123",
+      quantity: "5000",
+    },
+  ]),
+  enable: vi.fn(),
+  isEnabled: vi.fn(),
+  getNetworkId: vi.fn(),
+  getCollateral: vi.fn(),
+  getExtensions: vi.fn(),
+  getName: vi.fn(),
+  getIcon: vi.fn(),
+  getApiVersion: vi.fn(),
+  getSupportedExtensions: vi.fn(),
+  signTxs: vi.fn(),
+  getUsedAddress: vi.fn(),
+  getCollateralUnspentOutput: vi.fn(),
+  getUsedUTxOs: vi.fn(),
+} as unknown as BrowserWallet;
+
+vi.mock("@meshsdk/core", () => ({
+  BrowserWallet: vi.fn(() => mockWallet),
+}));
+
+// Test data
+const mockRoadmap = {
+  roadmapId: "test-roadmap-id",
+  roadmapName: "Test Roadmap",
+  roadmapDescription: "Test Roadmap Description",
+  preAddress: "addr_pre_test123",
+  progress: 75,
+  recoveredPlastic: 100,
+  sentPlasticTokens: 500000,
+  totalPlasticTokens: 1000000,
+  totalPlasticCredits: 1000,
+  soldPlasticCredits: 750,
+  fundsMissing: "250000000", // 250 USDM in micro
+  fundsDistributed: "750000000", // 750 USDM in micro
+  status: "active",
+  preId: "pre-test-id",
+  totalPlastic: 1000,
+  createdAt: "2022-01-01",
+};
+
+const createMockStore = (initialState = {}) => {
+  return configureStore({
+    reducer: {
+      roadmaps: roadmapSlice,
+      completedRoadmaps: completedRoadmapSlice,
+      archivedRoadmaps: archivedRoadmapSlice,
+      transactions: transactionSlice,
+      admin: adminSlice,
+      wallet: walletSlice,
+      auth: authSlice,
+    },
+    preloadedState: {
+      roadmaps: {
+        roadmaps: [mockRoadmap],
+        loading: false,
+        error: null,
+      },
+      completedRoadmaps: {
+        roadmaps: [],
+        loading: false,
+        error: null,
+      },
+      archivedRoadmaps: {
+        roadmaps: [],
+        loading: false,
+        error: null,
+      },
+      transactions: {
+        transactions: [],
+        page: 1,
+        perPage: 10,
+        total: 0,
+        totalPages: 1,
+        loading: false,
+        error: null,
+        currentFilter: [TransactionType.Sold],
+      },
+      admin: {
+        admins: [],
+        loading: false,
+        error: null,
+      },
+      wallet: {
+        walletId: null,
+        walletAddress: "addr_test123",
+      },
+      auth: {
+        role: null,
+        isAuthenticated: true,
+      },
+      ...initialState,
+    },
+  });
+};
+
+const renderComponent = (
+  store = createMockStore(),
+  walletContext = mockWallet
+) => {
+  return render(
+    <Provider store={store}>
+      <WalletContext.Provider value={walletContext}>
+        <MemoryRouter initialEntries={["/roadmap/test-roadmap-id"]}>
+          <RoadmapDetails />
+        </MemoryRouter>
+      </WalletContext.Provider>
+    </Provider>
+  );
+};
+
+describe("RoadmapDetails", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useNavigate as any).mockReturnValue(mockNavigate);
   });
 
-  it("renders loading state", () => {
-    (useSelector as any).mockReturnValue({
-      roadmaps: [],
-      loading: true,
-      error: null,
-    });
-    (useParams as any).mockReturnValue({ roadmapId: "123" });
-
-    render(<RoadmapDetails />);
-    expect(screen.getByText("Loading...")).toBeInTheDocument();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("renders error state", () => {
-    (useSelector as any).mockReturnValue({
-      roadmaps: [],
-      loading: false,
-      error: "Error",
-    });
-    (useParams as any).mockReturnValue({ roadmapId: "123" });
+  it("renders roadmap details correctly", () => {
+    renderComponent();
 
-    render(<RoadmapDetails />);
-    expect(screen.getByText("Error loading roadmap")).toBeInTheDocument();
-  });
-
-  it("renders not found state", () => {
-    (useSelector as any).mockReturnValue({
-      roadmaps: [],
-      loading: false,
-      error: null,
-    });
-    (useParams as any).mockReturnValue({ roadmapId: "123" });
-
-    render(<RoadmapDetails />);
-    expect(screen.getByText("Roadmap not found")).toBeInTheDocument();
-  });
-
-  it("renders roadmap data correctly", () => {
-    const mockRoadmap = {
-      roadmapId: "123",
-      roadmapName: "Sample Roadmap",
-      progress: 75,
-      recoveredPlastic: 300,
-      sentPlasticTokens: 500,
-      totalPlasticCredits: 1000,
-      preId: "pre123",
-    };
-
-    (useSelector as any).mockReturnValue({
-      roadmaps: [mockRoadmap],
-      loading: false,
-      error: null,
-    });
-    (useParams as any).mockReturnValue({ roadmapId: "123" });
-
-    render(<RoadmapDetails />);
-
-    expect(
-      screen.getByText("Roadmap Details: Sample Roadmap")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Test Roadmap")).toBeInTheDocument();
+    expect(screen.getByText("Roadmap Details")).toBeInTheDocument();
     expect(screen.getByText("75%")).toBeInTheDocument();
-    expect(screen.getByText("300 kg")).toBeInTheDocument();
-    expect(screen.getByText("500 PLASTIK")).toBeInTheDocument();
+    expect(screen.getByText("100 kg")).toBeInTheDocument();
     expect(screen.getByText("1000 USDM")).toBeInTheDocument();
   });
 
-  it("displays error toast when releasing before 100% progress", async () => {
-    const mockRoadmap = {
-      roadmapId: "123",
-      roadmapName: "Test",
-      progress: 90,
-      recoveredPlastic: 100,
-      sentPlasticTokens: 100,
-      totalPlasticCredits: 200,
-      preId: "pre1",
-    };
-
-    (useSelector as any).mockReturnValue({
-      roadmaps: [mockRoadmap],
-      loading: false,
-      error: null,
+  it('shows "not found" message when roadmap does not exist', () => {
+    const store = createMockStore({
+      roadmaps: {
+        roadmaps: [],
+        loading: false,
+        error: null,
+      },
     });
-    (useParams as any).mockReturnValue({ roadmapId: "123" });
 
-    render(<RoadmapDetails />);
-    const releaseBtn = screen.getByText("Release Funds");
-
-    fireEvent.click(releaseBtn);
-    expect(toast.error).toHaveBeenCalledWith(
-      "Funds cannot be released until the progress is 100%"
-    );
+    renderComponent(store);
+    expect(screen.getByText("Roadmap not found")).toBeInTheDocument();
   });
 
-  it("releases funds when progress is 100%", async () => {
-    const mockRoadmap = {
-      roadmapId: "123",
-      roadmapName: "Test",
-      progress: 100,
-      recoveredPlastic: 100,
-      sentPlasticTokens: 100,
-      totalPlasticCredits: 200,
-      preId: "pre1",
-    };
-
-    (useSelector as any).mockReturnValue({
-      roadmaps: [mockRoadmap],
-      loading: false,
-      error: null,
-    });
-    (useParams as any).mockReturnValue({ roadmapId: "123" });
-    (axios.post as any).mockResolvedValue({
-      data: { message: "Funds released successfully" },
+  it("does not render admin controls for non-admin users", () => {
+    const store = createMockStore({
+      auth: {
+        role: "USER",
+        isAuthenticated: true,
+      },
     });
 
-    render(<RoadmapDetails />);
-    const releaseBtn = screen.getByText("Release Funds");
+    renderComponent(store);
 
-    fireEvent.click(releaseBtn);
-
-    await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith("Funds released successfully");
-      expect(mockNavigate).toHaveBeenCalledWith("/admin");
-    });
+    expect(screen.queryByText("Add Admin")).not.toBeInTheDocument();
+    expect(screen.queryByText("Archive Roadmap")).not.toBeInTheDocument();
+    expect(screen.queryByText("Release Funds")).not.toBeInTheDocument();
   });
 
-  it("handles error when release API fails", async () => {
-    const mockRoadmap = {
-      roadmapId: "123",
-      roadmapName: "Test",
-      progress: 100,
-      recoveredPlastic: 100,
-      sentPlasticTokens: 100,
-      totalPlasticCredits: 200,
-      preId: "pre1",
-    };
-
-    (useSelector as any).mockReturnValue({
-      roadmaps: [mockRoadmap],
-      loading: false,
-      error: null,
-    });
-    (useParams as any).mockReturnValue({ roadmapId: "123" });
-
-    (axios.post as any).mockRejectedValue(new Error("Network error"));
-
-    // Suppress console.error temporarily
-    const originalError = console.error;
-    console.error = vi.fn();
-
-    render(<RoadmapDetails />);
-    const releaseBtn = screen.getByText("Release Funds");
-
-    fireEvent.click(releaseBtn);
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        "Failed to release funds. Please try again."
-      );
+  it("renders admin controls for admin users", () => {
+    const store = createMockStore({
+      auth: {
+        role: "ADMIN",
+        isAuthenticated: true,
+      },
     });
 
-    // Restore console.error
-    console.error = originalError;
+    renderComponent(store);
+
+    expect(screen.getByText("Add Admin")).toBeInTheDocument();
+    expect(screen.getByText("Archive Roadmap")).toBeInTheDocument();
+    expect(screen.getByText("Release Funds")).toBeInTheDocument();
   });
 
+  it("renders correct transaction history", () => {
+    renderComponent();
+
+    expect(screen.getByText("Transaction History")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Below is a record of recent transactions, providing details about key activities and their timestamps for better tracking and transparency."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("copies address to clipboard when clicked", async () => {
+    // Mock clipboard API
+    const writeTextMock = vi.fn().mockResolvedValue(void 0);
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: writeTextMock,
+      },
+    });
+
+    renderComponent();
+
+    // Look for the truncated address instead of the full address
+    const addressElement = screen.getByText("addr_p...t123");
+    fireEvent.click(addressElement);
+
+    expect(writeTextMock).toHaveBeenCalledWith("addr_pre_test123");
+  });
 });

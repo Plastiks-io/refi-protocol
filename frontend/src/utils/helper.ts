@@ -1,5 +1,4 @@
-// src/utils/cardano.ts
-import { Address } from "@emurgo/cardano-serialization-lib-browser";
+// src/utils/helper.ts
 import { Lucid, Blockfrost } from "lucid-cardano";
 
 /**
@@ -7,19 +6,16 @@ import { Lucid, Blockfrost } from "lucid-cardano";
  * Internally it tries to parse it as Bech32; if it fails, returns false.
  */
 export function isValidCardanoAddress(addr: string): boolean {
-  try {
-    // This will throw if the address is not valid Bech32 or Base58
-    Address.from_bech32(addr);
-    return true;
-  } catch (e) {
-    // It might also be a Byron‐era (Base58) address; try that too
-    try {
-      Address.from_bytes(Buffer.from(addr, "hex"));
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
+  if (!addr || typeof addr !== "string") return false;
+
+  // Bech32 address pattern (Shelley era - starts with addr, addr_test, stake, etc.)
+  const bech32Pattern = /^(addr|addr_test|stake|stake_test)1[a-zA-Z0-9]{50,}$/;
+
+  // Byron era pattern (Base58 - starts with Ae2 for mainnet, 2c for testnet)
+  const byronPattern =
+    /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{95,}$/;
+
+  return bech32Pattern.test(addr) || byronPattern.test(addr);
 }
 
 export async function initLucid() {

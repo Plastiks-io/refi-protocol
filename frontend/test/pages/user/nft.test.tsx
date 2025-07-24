@@ -1,139 +1,142 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { Provider } from "react-redux";
-import { configureStore } from "@reduxjs/toolkit";
-import { describe, beforeEach, test, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import NFTPurchase from "../../../src/pages/user/nft";
 import { WalletContext } from "../../../src/App";
-import { toast } from "sonner";
-import roadmapSlice from "../../../src/redux/roadmapSlice";
+import { Provider } from "react-redux";
+import { store } from "../../../src/redux/store";
+import { useSelector } from "react-redux";
 import { BrowserWallet } from "@meshsdk/core";
+import "@testing-library/jest-dom";
 
-// Mock external dependencies
-vi.mock("sonner");
-vi.mock("../../../src/services/BuyNFT");
-vi.mock("lucide-react", () => ({
-  Loader2: vi.fn(() => <div data-testid="spinner">Loading...</div>),
-}));
-
-const mockStore = configureStore({
-  reducer: {
-    roadmaps: roadmapSlice,
-  },
-  preloadedState: {
-    roadmaps: {
-      roadmaps: [],
-      loading: false,
-      error: null,
-    },
-  },
+// 🧪 Mock Redux & Dispatch
+vi.mock("react-redux", async () => {
+  const actual = await vi.importActual("react-redux");
+  return {
+    ...actual,
+    useSelector: vi.fn(),
+    useDispatch: () => vi.fn(),
+  };
 });
 
-// Mock BrowserWallet implementation
+// 🧪 Mock toast
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn(),
+    warning: vi.fn(),
+  },
+}));
+
+// 🧪 Mock Cardano client
+vi.mock("../../../src/services/cardano", () => ({
+  cardanoClient: {
+    sentPc: vi.fn().mockResolvedValue("mocked-tx"),
+  },
+}));
+
+// 🌱 Mock wallet context
 const mockWallet = {
-  getChangeAddress: vi.fn().mockResolvedValue("mock-address"),
-  getBalance: vi.fn(),
-  getUsedAddresses: vi.fn(),
-  getRewardAddresses: vi.fn(),
-  getUnusedAddresses: vi.fn(),
-  signTx: vi.fn(),
-  submitTx: vi.fn(),
-  // Add other required BrowserWallet methods as needed
+  getChangeAddress: vi
+    .fn()
+    .mockResolvedValue(
+      "addr_test1qxyz43reffqfeqwfewqweqfer32rqwascdqwedaswqeads"
+    ),
 } as unknown as BrowserWallet;
 
-const renderComponent = (wallet: BrowserWallet | null = null) => {
+const mockRoadmaps = [
+  {
+    roadmapId: "1",
+    roadmapName: "Recycle Ocean Waste",
+    roadmapDescription: "Removing plastics from oceans",
+    totalPlasticCredits: 10,
+    soldPlasticCredits: 2,
+    totalPlasticTokens: 100,
+    sentPlasticTokens: 50,
+    totalPlastic: 500,
+    recoveredPlastic: 100,
+    preId: "pre123",
+  },
+];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+
+  (useSelector as any).mockImplementation((selectorFn: any) =>
+    selectorFn({
+      roadmaps: {
+        roadmaps: mockRoadmaps,
+        loading: false,
+        error: null,
+      },
+    })
+  );
+});
+
+const renderComponent = (wallet = mockWallet) => {
   return render(
-    <WalletContext.Provider value={wallet}>
-      <Provider store={mockStore}>
+    <Provider store={store}>
+      <WalletContext.Provider value={wallet}>
         <NFTPurchase />
-      </Provider>
-    </WalletContext.Provider>
+      </WalletContext.Provider>
+    </Provider>
   );
 };
 
 describe("NFTPurchase Component", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockStore.dispatch = vi.fn();
-  });
-
-  it("1. Renders loading spinner when data is loading", () => {
-    vi.spyOn(mockStore, "getState").mockReturnValue({
-      roadmaps: { roadmaps: [], loading: true, error: null },
-    });
-
+  it("renders roadmap cards", async () => {
     renderComponent();
-    expect(screen.getByTestId("spinner")).toBeInTheDocument();
+    expect(await screen.findByText("Recycle Ocean Waste")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Enter amount")).toBeInTheDocument();
+    expect(screen.getByText("Buy Now")).toBeInTheDocument();
   });
 
-  it("2. Displays error message when there is an error", () => {
-    vi.spyOn(mockStore, "getState").mockReturnValue({
-      roadmaps: { roadmaps: [], loading: false, error: "Test error" },
-    });
-
-    renderComponent();
-    expect(screen.getByText(/Error: Test error/)).toBeInTheDocument();
-  });
-
-  it("3. Displays roadmap data when loaded", async () => {
-    const mockRoadmaps = [
-      {
-        preId: "pre-1",
-        roadmapId: "roadmap-1",
-        roadmapName: "Test Roadmap",
-        roadmapDescription: "Test Description",
-        progress: 0,
-        adminPkh: "admin-pkh",
-        prePkh: "pre-pkh",
-        preSkh: "pre-skh",
-        totalPlasticCredits: 100,
-        soldPlasticCredits: 50,
-        totalPlasticTokens: 0,
-        sentPlasticTokens: 0,
-        totalPlastic: 100,
-        recoveredPlastic: 0,
-      },
-    ];
-
-    vi.spyOn(mockStore, "getState").mockReturnValue({
-      roadmaps: { roadmaps: mockRoadmaps, loading: false, error: null },
-    });
-
-    renderComponent();
-    expect(screen.getByText("Test Roadmap")).toBeInTheDocument();
-    expect(screen.getByText("Total Plastic Credits: 100")).toBeInTheDocument();
-  });
-
-  it("4. Shows wallet warning when trying to buy without wallet", async () => {
-    vi.spyOn(mockStore, "getState").mockReturnValue({
-      roadmaps: {
-        roadmaps: [
-          {
-            preId: "pre-1",
-            roadmapId: "roadmap-1",
-            roadmapName: "Test Roadmap",
-            roadmapDescription: "Test Description",
-            progress: 0,
-            adminPkh: "admin-pkh",
-            prePkh: "pre-pkh",
-            preSkh: "pre-skh",
-            totalPlasticCredits: 100,
-            soldPlasticCredits: 50,
-            totalPlasticTokens: 0,
-            sentPlasticTokens: 0,
-            totalPlastic: 100,
-            recoveredPlastic: 0,
-          },
-        ],
-        loading: false,
-        error: null,
-      },
-    });
-
-    renderComponent(null);
-    fireEvent.click(screen.getByText("Buy Now"));
-    expect(toast.warning).toHaveBeenCalledWith(
-      "Please connect your wallet before buying."
+  it("shows loading screen when loading is true", () => {
+    (useSelector as any).mockImplementation((selectorFn: any) =>
+      selectorFn({
+        roadmaps: {
+          roadmaps: [],
+          loading: true,
+          error: null,
+        },
+      })
     );
+    renderComponent();
+    expect(screen.getByRole("status")).toBeInTheDocument();
+  });
+
+  it("shows error screen when error exists", () => {
+    (useSelector as any).mockImplementation((selectorFn: any) =>
+      selectorFn({
+        roadmaps: {
+          roadmaps: [],
+          loading: false,
+          error: "Something broke",
+        },
+      })
+    );
+    renderComponent();
+    expect(screen.getByText("Error: Something broke")).toBeInTheDocument();
+  });
+
+  it("shows warning if wallet not connected", async () => {
+    const toast = await import("sonner");
+
+    render(
+      <Provider store={store}>
+        <WalletContext.Provider value={null}>
+          <NFTPurchase />
+        </WalletContext.Provider>
+      </Provider>
+    );
+
+    const button = screen.getByTestId("buy-now-button");
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(toast.toast.warning).toHaveBeenCalledWith(
+        "Please connect your wallet before buying.",
+        expect.anything()
+      );
+    });
   });
 });
