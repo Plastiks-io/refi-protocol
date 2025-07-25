@@ -35,7 +35,7 @@ const worker = new Worker<StakeContractJob>(
 
 // Add event listeners for debugging
 worker.on("ready", () => {
-  console.log("👷 updateStakeContractQueue worker is ready");
+  console.log("👷 Stake Contract worker is ready");
 });
 
 worker.on("error", (err) => {

@@ -1,6 +1,7 @@
 import { Transaction } from "@/redux/TransactionSlice";
 import React from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 interface Props {
   transactions: Transaction[];
@@ -8,6 +9,22 @@ interface Props {
 }
 
 const DynamicTable: React.FC<Props> = ({ transactions, filterValue }) => {
+  const copyToClipboard = (e: React.MouseEvent<HTMLDivElement>) => {
+    try {
+      const text = e.currentTarget.textContent || "";
+      navigator.clipboard.writeText(text).then(() => {
+        console.log("Copied to clipboard:", text);
+      });
+      toast.success("Copied to clipboard!", {
+        closeButton: true,
+      });
+    } catch (error) {
+      console.error("Failed to copy text:", error);
+      toast.error("Failed to copy text", {
+        closeButton: true,
+      });
+    }
+  };
   return (
     <div className="w-full border border-[#E5E7EB] rounded-xl overflow-x-auto">
       <table className="w-full min-w-[800px] table-fixed border-collapse">
@@ -67,7 +84,11 @@ const DynamicTable: React.FC<Props> = ({ transactions, filterValue }) => {
                 {tx.amount}
               </td>
               <td className="px-2 py-4 text-md text-black">
-                <div className="truncate" title={tx.assetId}>
+                <div
+                  className="truncate cursor-pointer"
+                  title={tx.assetId}
+                  onClick={copyToClipboard}
+                >
                   {tx.assetId}
                 </div>
               </td>

@@ -4,11 +4,14 @@ import { getIO } from "../../utils/socket.js";
 import { BuyNftJob } from "../queues.js";
 import { connection } from "../connection.js";
 
-new Worker<BuyNftJob>(
+const worker = new Worker<BuyNftJob>(
   "buyNftQueue",
   async (job) => {
     const { txHash, buyerAddress, preId, roadmapId, soldPlasticCredit } =
       job.data;
+
+    console.log("👷 Buy NFT worker processing job", txHash);
+
     const cardano = new Cardano();
     await cardano.init();
     // 1. Confirm Tx1 (ADA received)
@@ -39,9 +42,10 @@ new Worker<BuyNftJob>(
       soldPlasticCredit,
       roadmapId
     );
-    const txConfirmed3 = await cardano.checkTxConfirmed(sentPcTx);
-    if (!txConfirmed3) throw new Error("Tx3 not confirmed");
+    // 4) check if transaction has been updated on-chain for updated Roadmap
+    await cardano.updatedOnChain(roadmapTx);
 
+    // 5) fetch the fresh ReFi datum
     const updatedDatum = await cardano.getRoadmapDatum(preId, roadmapId);
 
     // **EMIT THE SOCKET EVENT**
@@ -52,3 +56,20 @@ new Worker<BuyNftJob>(
   },
   { connection, concurrency: 1 }
 );
+
+// Add event listeners for debugging
+worker.on("ready", () => {
+  console.log("👷 Buy NFT worker is ready");
+});
+
+worker.on("error", (err) => {
+  console.error("❌ Buy NFT worker error:", err);
+});
+
+worker.on("failed", (job, err) => {
+  console.error(`❌ Job ${job?.id} failed:`, err);
+});
+
+worker.on("completed", (job, result) => {
+  console.log(`✅ Job ${job.id} completed:`, result);
+});
