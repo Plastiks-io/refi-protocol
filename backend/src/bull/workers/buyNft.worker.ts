@@ -52,7 +52,7 @@ const worker = new Worker<BuyNftJob>(
     const io = getIO();
     io.emit("roadmapUpdated", updatedDatum);
 
-    return { roadmapTx, sentPcTx };
+    return { roadmapTx, sentPcTx, updatedDatum };
   },
   { connection, concurrency: 1 }
 );

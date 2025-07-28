@@ -337,7 +337,7 @@ export class Cardano {
         throw new Error("User is not a lender in this contract");
       }
 
-      const [_, [currentBalance, currentRewardDebt]] =
+      const [_, [currentBalance, _currentRewardDebt]] =
         currentDatum.lenders[userLenderIndex];
 
       // Check if user has sufficient balance
@@ -478,7 +478,7 @@ export class Cardano {
       if (userLenderIndex === -1) {
         throw new Error("User is not a lender in this contract");
       }
-      const [_, [currentBalance, currentRewardDebt]] =
+      const [_, [_currentBalance, currentRewardDebt]] =
         currentDatum.lenders[userLenderIndex];
       if (currentRewardDebt === 0n) {
         throw new Error("No rewards to redeem");

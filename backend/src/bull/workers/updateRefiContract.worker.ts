@@ -20,6 +20,8 @@ const worker = new Worker<RefiContractJob>(
 
     // 3) emit to all clients
     getIO().emit("roadmapUpdated", updatedDatum);
+
+    return { success: true, updatedDatum };
   },
   { connection, concurrency: 1 }
 );
