@@ -123,7 +123,9 @@ export default function Lend() {
 
   const fetchBalances = async () => {
     try {
-      const plastikTokenAddress = import.meta.env.VITE_PLASTIC_TOKEN;
+      const policyId = import.meta.env.VITE_POLICY_ID;
+      const plastikTokenName = import.meta.env.VITE_PLASTIC_TOKEN_NAME;
+      const plastikTokenAddress = `${policyId}${plastikTokenName}`;
 
       if (!wallet) return;
       const balances = await wallet.getBalance();

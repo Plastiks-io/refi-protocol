@@ -205,11 +205,15 @@ const getAllActiveRoadmaps = async (
           stakeCredential
         );
         const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
-        const ptAssetUnit = process.env.PLASTIC_TOKEN!;
+        const ptPolicyId = process.env.POLICY_ID!;
+        const ptAssetName = process.env.PLASTIC_TOKEN_NAME!;
+        const ptAssetUnit = `${ptPolicyId}${ptAssetName}`;
         const fundsMissing =
           ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
 
-        const usdmAssetUnit: string = process.env.USDM_TOKEN!;
+        const usdmPolicyId = process.env.POLICY_ID!;
+        const usdmTokenName = process.env.USDM_TOKEN_NAME!;
+        const usdmAssetUnit: string = `${usdmPolicyId}${usdmTokenName}`;
         const fundsDistributed =
           utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;
 

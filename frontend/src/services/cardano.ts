@@ -49,9 +49,12 @@ type LenderDatum = {
 export class Cardano {
   public lucidInstance: Lucid | null = null;
   private config!: NetworkConfig;
-  public ptAssetUnit: string = import.meta.env.VITE_PLASTIC_TOKEN!;
-  public usdmAssetUnit: string = import.meta.env.VITE_USDM_TOKEN!;
-  public pcAssetUnit: string = import.meta.env.VITE_PC_TOKEN!;
+  public policyId: string = import.meta.env.VITE_POLICY_ID!;
+  public ptAssetName: string = import.meta.env.VITE_PLASTIC_TOKEN_NAME!;
+  public usdmAssetName: string = import.meta.env.VITE_USDM_TOKEN_NAME!;
+  public ptAssetUnit: string = `${this.policyId}${this.ptAssetName}`;
+  public usdmAssetUnit: string = `${this.policyId}${this.usdmAssetName}`;
+  public deadWalletAddress: string = import.meta.env.VITE_DEAD_WALLET_ADDRESS!;
   // Define supported network configs
   private static NETWORKS: Record<number, NetworkConfig> = {
     1: {
@@ -679,8 +682,8 @@ export class Cardano {
           USDMAmount: Number(USDMAmount),
           preId,
           roadmapId,
-          plastikToken: this.ptAssetUnit,
-          usdmToken: this.usdmAssetUnit,
+          plastikToken: `${this.policyId}.${this.ptAssetName}`,
+          usdmToken: `${this.policyId}.${this.usdmAssetName}`,
           hash: txHash,
           type1: "tokenReturn",
           type2: "fundTransfer",
@@ -973,6 +976,8 @@ export class Cardano {
       );
 
       const usdmValue = matchedUtxo.assets[this.usdmAssetUnit] || 0n;
+
+      // retire%(can be changed through governance) of the usdm value will be bought(from minswap) and send to dead wallet
       // console.log("usdmValue", usdmValue);
 
       const tx = await lucid
@@ -996,7 +1001,7 @@ export class Cardano {
         txFee: 2,
         amount: usdmValueDivided,
         roadmapId: roadmapId,
-        assetId: this.usdmAssetUnit,
+        assetId: `${this.policyId}.${this.usdmAssetName}`,
         hash: txHash,
         type: "usdmReleased",
       });

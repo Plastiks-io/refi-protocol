@@ -1,13 +1,13 @@
 # Ignore files in the frontend directory
 /frontend/node_modules/
 /frontend/dist/
-/frontend/.env
+/frontend/.env*
 /frontend/.next
 /frontend/build
 
 # Ignore files in the backend directory
 /backend/node_modules/
-/backend/.env
+/backend/.env*
 /backend/build
 /backend/logs/
 /backend/tmp/

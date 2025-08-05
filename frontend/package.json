@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "serve": "serve -s dist -l 4173",
     "test": "vitest",
     "test:ui": "vitest --ui"
   },

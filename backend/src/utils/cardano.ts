@@ -29,9 +29,9 @@ export interface NetworkConfig {
 
 export class Cardano {
   public lucidInstance: Lucid | null = null;
-  public ptAssetUnit: string;
-  public usdmAssetUnit: string;
-  public pcAssetUnit: string;
+  public policyId: string;
+  public ptAssetName: string;
+  public usdmAssetName: string;
   public stakeRewardValidator: Validator;
   public refiValidator: Validator;
 
@@ -44,19 +44,14 @@ export class Cardano {
 
   constructor() {
     // Initialize asset units from environment variables
-    this.ptAssetUnit = process.env.PLASTIC_TOKEN!;
-    this.usdmAssetUnit = process.env.USDM_TOKEN!;
-    this.pcAssetUnit = process.env.PC_ASSET_ID!;
-
+    this.policyId = process.env.POLICY_ID!;
+    this.ptAssetName = process.env.PLASTIC_TOKEN_NAME!;
+    this.usdmAssetName = process.env.USDM_TOKEN_NAME!;
     // Validate required environment variables
-    if (!this.ptAssetUnit) {
-      throw new Error("PLASTIC_TOKEN environment variable is required");
-    }
-    if (!this.usdmAssetUnit) {
-      throw new Error("USDM_TOKEN environment variable is required");
-    }
-    if (!this.pcAssetUnit) {
-      throw new Error("PC_TOKEN environment variable is required");
+    if (!this.policyId || !this.ptAssetName || !this.usdmAssetName) {
+      throw new Error(
+        "Missing required environment variables for Cardano asset configuration"
+      );
     }
 
     // Initialize validators
@@ -157,27 +152,67 @@ export class Cardano {
       const lucid = this.getLucid();
       const seed = process.env.PC_WALLET!;
       lucid.selectWalletFromSeed(seed);
+      const { paymentCredential } = lucid.utils.getAddressDetails(
+        await lucid.wallet.address()
+      );
 
-      const pcAssetId = process.env.PC_ASSET_ID!;
+      // Parse the minting policy from env and convert to Script format
+      const mintingPolicy = lucid.utils.nativeScriptFromJson({
+        type: "all",
+        scripts: [
+          {
+            type: "sig",
+            keyHash: paymentCredential?.hash ?? "",
+          },
+        ],
+      });
+      const policyId = lucid.utils.mintingPolicyToId(mintingPolicy);
+
+      const timestamp = Date.now();
+      const tokenName = fromText(`PLASTIC_CREDIT_${timestamp}`);
+      const metadata = {
+        [policyId]: {
+          [tokenName]: {
+            name: "PLASTIC CREDIT",
+            image: "ipfs://QmP6mKWsUExK1emB7K9bxSRjdRLaqoysdutTsfYg6PDGUy",
+            description: "This Token was minted for Plastik",
+            mediaType: "image/png",
+          },
+        },
+      };
+
+      // Custom metadata for buy amount (using label 674 for custom data)
+      const buyAmountMetadata = {
+        674: {
+          msg: [
+            `Plastic Credits Purchased: ${amount}`,
+            `Purchase Date: ${new Date().toISOString()}`,
+            `Roadmap ID: ${roadmapId}`,
+          ],
+        },
+      };
+
+      const unit = `${policyId}${tokenName}`;
 
       const tx = await lucid
         .newTx()
-        .payToAddress(address, {
-          [pcAssetId]: BigInt(amount),
-        })
+        .mintAssets({ [unit]: 1n })
+        .attachMintingPolicy(mintingPolicy)
+        .attachMetadata(721, metadata) // Standard NFT metadata
+        .attachMetadata(674, buyAmountMetadata) // Custom purchase metadata
+        .payToAddress(address, { [unit]: 1n })
         .complete();
 
-      const txFee = 2;
       const signedTx = await tx.sign().complete();
       const txHash = await signedTx.submit();
 
       // Create a new transaction in the database
       await Transaction.create({
         txDate: new Date(),
-        txFee,
+        txFee: 2,
         amount,
         roadmapId,
-        assetId: pcAssetId,
+        assetId: `${policyId}.${tokenName}`,
         hash: txHash,
         type: TransactionType.Sold,
       });
@@ -246,7 +281,7 @@ export class Cardano {
       const adminPkh = await getPubKeyHash(lucid);
       if (!lender.adminsPkh.includes(adminPkh)) throw new Error("Unauthorized");
 
-      const ptUnit = process.env.PLASTIC_TOKEN!;
+      const ptUnit = `${this.policyId}${this.ptAssetName}`;
       const needPT = BigInt(soldPlasticCredit) * 80n;
       // sum PT in this single UTxO
       const contractPT = stakeUtxo.assets[ptUnit] || 0n;
@@ -290,7 +325,7 @@ export class Cardano {
         lenders: updatedLenders,
       };
 
-      const usdmAssetUnit: string = process.env.USDM_TOKEN!;
+      const usdmAssetUnit: string = `${this.policyId}${this.usdmAssetName}`;
       // Build assets for refi and stake outputs
       const refiAssets: Assets = {
         lovelace: matchedUtxo.assets.lovelace,
@@ -341,13 +376,14 @@ export class Cardano {
       const hash = await signed.submit();
 
       // after successfully updating roadmap check if roadmap is complete then save it into DB with name of completed Roadmap
+      const ptAssetUnit = `${this.policyId}${this.ptAssetName}`;
       if (progress === 10000n) {
         await Transaction.create({
           txDate: new Date(),
           txFee: 2,
           amount: Number(needPT),
           roadmapId,
-          assetId: this.pcAssetUnit,
+          assetId: ptAssetUnit,
           hash: hash,
           type: TransactionType.Roadmap,
         });
@@ -410,11 +446,11 @@ export class Cardano {
       );
 
       const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
-      const ptAssetUnit = process.env.PLASTIC_TOKEN!;
+      const ptAssetUnit = `${this.policyId}${this.ptAssetName}`;
       const fundsMissing =
         ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
 
-      const usdmAssetUnit: string = process.env.USDM_TOKEN!;
+      const usdmAssetUnit: string = `${this.policyId}${this.usdmAssetName}`;
       const fundsDistributed =
         utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;
 

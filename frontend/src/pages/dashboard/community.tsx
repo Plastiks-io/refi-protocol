@@ -24,7 +24,9 @@ const Community: React.FC = () => {
   const [votingPercentage, setVotingPercentage] = useState<number>(0);
 
   // Data from Environment Variables
-  const plastikTokenAddress = import.meta.env.VITE_PLASTIC_TOKEN;
+  const policyId = import.meta.env.VITE_POLICY_ID;
+  const plastikTokenName = import.meta.env.VITE_PLASTIC_TOKEN_NAME;
+  const plastikTokenAddress = `${policyId}${plastikTokenName}`;
   const minimumPlastikToInitializeVoting = import.meta.env.VITE_MINIMUM_PLASTIK;
   const minimumPlastikToVote = import.meta.env.VITE_MINIMUM_PLASTIK_TO_VOTE;
 

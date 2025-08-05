@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon --ext ts --exec \"npx tsc && node dist/index.js\"",
+    "test": "vitest",
+    "test:watch": "vitest --watch"
+  },
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-typescript": "^7.27.1",
@@ -24,13 +31,6 @@
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
-  },
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "nodemon --ext ts --exec \"npx tsc && node dist/index.js\"",
-    "test": "vitest",
-    "test:watch": "vitest --watch"
   },
   "keywords": [],
   "author": "",

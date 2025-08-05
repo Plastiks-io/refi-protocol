@@ -94,7 +94,7 @@ const DynamicTable: React.FC<Props> = ({ transactions, filterValue }) => {
               </td>
               <td className="px-2 py-4 whitespace-nowrap text-md">
                 <Link
-                  to={`https://preprod.cexplorer.io/asset/${tx.assetId}`}
+                  to={`https://preprod.cardanoscan.io/token/${tx.assetId}`}
                   className="text-blue-500 hover:underline"
                   target="_blank"
                   rel="noopener noreferrer"
