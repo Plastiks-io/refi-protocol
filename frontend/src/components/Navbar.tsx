@@ -13,6 +13,7 @@ import { clearAuthUser, setAuthUser } from "@/redux/authSlice";
 import { signInOnServer, signOutOnServer } from "@/services/auth";
 
 import DisconnectPopup from "./admin/DisconnectPopup";
+import CleanGoogleTranslate from "./CleanGoogleTranslate";
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -229,6 +230,9 @@ const Navbar = () => {
             </button>
           </div>
         </div>
+
+        {/* Language Selector */}
+        <CleanGoogleTranslate />
       </div>
 
       {/* Mobile Menu */}
