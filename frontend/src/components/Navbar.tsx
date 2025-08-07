@@ -218,6 +218,8 @@ const Navbar = () => {
             )}
           </div>
 
+          {/* Language Selector */}
+          <CleanGoogleTranslate />
           {/* Mobile Menu Button */}
           <div className="md:hidden">
             <button
@@ -230,9 +232,6 @@ const Navbar = () => {
             </button>
           </div>
         </div>
-
-        {/* Language Selector */}
-        <CleanGoogleTranslate />
       </div>
 
       {/* Mobile Menu */}

@@ -21,19 +21,19 @@ const languages: Language[] = [
   { code: "fr", name: "Français", flag: "🇫🇷" },
   { code: "de", name: "Deutsch", flag: "🇩🇪" },
   { code: "hi", name: "हिंदी", flag: "🇮🇳" },
-  { code: "zh", name: "中文", flag: "🇨🇳" },
+  { code: "hy", name: "Հայերեն", flag: "🇦🇲" },
+  { code: "zh-CN", name: "中文", flag: "🇨🇳" },
   { code: "ja", name: "日本語", flag: "🇯🇵" },
   { code: "ar", name: "العربية", flag: "🇸🇦" },
   { code: "pt", name: "Português", flag: "🇧🇷" },
   { code: "ru", name: "Русский", flag: "🇷🇺" },
-  { code: "hy", name: "Հայերեն", flag: "🇦🇲" },
 ];
 
 const CleanGoogleTranslate: React.FC = () => {
   const [currentLang, setCurrentLang] = useState("en");
 
   useEffect(() => {
-    // 1) hide all Google Translate UI
+    // 1) Hide all Google Translate UI elements
     const style = document.createElement("style");
     style.textContent = `
       .goog-te-banner-frame,
@@ -52,7 +52,7 @@ const CleanGoogleTranslate: React.FC = () => {
     `;
     document.head.appendChild(style);
 
-    // 2) load & init the widget
+    // 2) Load & initialize the Google Translate widget
     window.googleTranslateElementInit = () => {
       new window.google.translate.TranslateElement(
         {
@@ -64,10 +64,10 @@ const CleanGoogleTranslate: React.FC = () => {
         "google_translate_element"
       );
 
-      // extra safety remove banner iframe
+      // Remove banner iframe after initialization
       setTimeout(() => {
-        const b = document.querySelector(".goog-te-banner-frame");
-        if (b) b.remove();
+        const banner = document.querySelector(".goog-te-banner-frame");
+        if (banner) banner.remove();
         document.body.style.top = "0";
       }, 500);
     };
@@ -82,31 +82,55 @@ const CleanGoogleTranslate: React.FC = () => {
       window.googleTranslateElementInit();
     }
 
-    // 3) read current language from googtrans cookie
-    const getLang = () => {
+    // 3) Read current language from googtrans cookie and set it
+    const getLangFromCookie = () => {
       const match = document.cookie.match(/(?:^|;\s*)googtrans=\/en\/([^;]+)/);
       return match ? match[1] : "en";
     };
-    setCurrentLang(getLang());
+    setCurrentLang(getLangFromCookie());
   }, []);
 
+  // 4) Effect to update the hidden widget's select element on language change
+  useEffect(() => {
+    // Delay to ensure widget is loaded
+    const timeout = setTimeout(() => {
+      const select = document.querySelector<HTMLSelectElement>(
+        "#google_translate_element select.goog-te-combo"
+      );
+      if (select) {
+        // Empty string means English (default)
+        select.value = currentLang === "en" ? "" : currentLang;
+        select.dispatchEvent(new Event("change"));
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [currentLang]);
+
+  // Language change handler: updates cookie and reloads page
   const changeLanguage = (lang: string) => {
     const expires = new Date();
     expires.setDate(expires.getDate() + 365);
-    if (lang === "en") {
-      document.cookie = `googtrans=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;domain=${location.hostname}`;
-    } else {
-      document.cookie = `googtrans=/en/${lang};expires=${expires.toUTCString()};path=/;domain=${
-        location.hostname
-      }`;
+    const domain = window.location.hostname;
+    const rootDomain = domain.startsWith("www.") ? domain.substring(4) : domain;
+
+    // Clear all variants
+    document.cookie = `googtrans=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
+    document.cookie = `googtrans=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;domain=${domain}`;
+    document.cookie = `googtrans=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;domain=.${rootDomain}`;
+
+    // Set new cookie with root domain
+    if (lang !== "en") {
+      document.cookie = `googtrans=/en/${lang};expires=${expires.toUTCString()};path=/;domain=.${rootDomain}`;
     }
+
     setCurrentLang(lang);
     window.location.reload();
   };
 
   return (
     <div className="flex items-center space-x-3">
-      {/* hidden translate element */}
+      {/* Hidden translate element */}
       <div
         id="google_translate_element"
         style={{
@@ -118,7 +142,7 @@ const CleanGoogleTranslate: React.FC = () => {
         }}
       />
 
-      {/* language selector with down arrow */}
+      {/* Language selector with down arrow */}
       <div className="relative">
         <select
           value={currentLang}
@@ -132,7 +156,6 @@ const CleanGoogleTranslate: React.FC = () => {
             </option>
           ))}
         </select>
-        {/* Down arrow icon positioned */}
         <img
           src={DownArrow}
           alt="Down Arrow"
