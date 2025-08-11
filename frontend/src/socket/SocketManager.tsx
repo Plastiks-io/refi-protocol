@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import { socket } from "./socket";
 import { Roadmap, upsertRoadmap } from "@/redux/roadmapSlice";
 import { fetchTransactions, TransactionType } from "@/redux/TransactionSlice";
+import { toast } from "sonner";
 
 const SocketManager: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -13,6 +14,18 @@ const SocketManager: React.FC = () => {
   useEffect(() => {
     // ✅ Socket.IO: listen for roadmap updates
     socket.on("roadmapUpdated", (fullRoadmap: Roadmap) => {
+      toast.success("NFT bought successfully!", {
+        description: `You have successfully purchased NFT from ${fullRoadmap.roadmapName}.`,
+        closeButton: true,
+      });
+      dispatch(upsertRoadmap(fullRoadmap));
+    });
+
+    socket.on("fundsUpdated", (fullRoadmap: Roadmap) => {
+      toast.success("Successfully sent funds!", {
+        description: `You have successfully funded the roadmap ${fullRoadmap.roadmapName}.`,
+        closeButton: true,
+      });
       dispatch(upsertRoadmap(fullRoadmap));
     });
 
@@ -33,6 +46,7 @@ const SocketManager: React.FC = () => {
 
     return () => {
       socket.off("roadmapUpdated");
+      socket.off("fundsUpdated");
       socket.off("stakeContractUpdated");
     };
   }, [dispatch, refresh]);

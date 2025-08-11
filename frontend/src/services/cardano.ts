@@ -210,7 +210,7 @@ export class Cardano {
         return txHash;
       }
 
-      // 6.4) Otherwise, there is already a datum. We’ll pull the first UTxO (assume singular for simplicity)
+      // 6.4) Otherwise, there is already a datum. We’ll pull the UTxO that has admins PKH
       const stakeRewardUTXO = stakeRewardUTXOs[0];
       if (!stakeRewardUTXO.datum) {
         throw new Error("Missing datum in contract UTxO");
@@ -672,6 +672,7 @@ export class Cardano {
       const signed = await tx.sign().complete();
       const txHash = await signed.submit();
 
+      const usdmBalance = Number(matchedUtxo.assets[this.usdmAssetUnit]) || 0;
       // save the plastik token to Lend S.C as well as usdm funding on DB
       await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/transaction/save-multiple`,
@@ -687,6 +688,7 @@ export class Cardano {
           hash: txHash,
           type1: "tokenReturn",
           type2: "fundTransfer",
+          currentUSDM: usdmBalance,
         }
       );
       return txHash;
@@ -1149,7 +1151,8 @@ export class Cardano {
     wallet: BrowserWallet,
     amount: number,
     preId: string,
-    roadmapId: string
+    roadmapId: string,
+    currentProgress?: number
   ) => {
     try {
       const walletApi = this.meshToLucidAdapter(wallet.walletInstance);
@@ -1190,6 +1193,7 @@ export class Cardano {
         preId: preId,
         roadmapId: roadmapId,
         soldPlasticCredit: amount,
+        currentProgress: currentProgress,
       };
       const { data: res } = await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/nft/buy`,

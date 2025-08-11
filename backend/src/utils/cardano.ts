@@ -227,6 +227,7 @@ export class Cardano {
       throw err;
     }
   }
+
   public async updateRoadmap(
     preId: string,
     roadmapId: string,
@@ -238,10 +239,9 @@ export class Cardano {
       lucid.selectWalletFromSeed(adminSeed);
       const adminAddress = await lucid.wallet.address();
 
-      // Configure Decimal for high precision
-      Decimal.set({ precision: 50, rounding: 4 }); // 50 decimal places, round half up
+      Decimal.set({ precision: 50, rounding: Decimal.ROUND_HALF_UP });
 
-      // Find matching UTXO at refi contract
+      // --- Find the roadmap UTXO ---
       const utxos = await lucid.utxosAt(this.refiContractAddress);
       const matchedUtxo = utxos.find((u) => {
         if (!u.datum) return false;
@@ -254,62 +254,52 @@ export class Cardano {
       if (!matchedUtxo?.datum) throw new Error("No matching roadmap UTxO");
 
       const old = parseRoadmapDatum(Data.from(matchedUtxo.datum));
-      const newSold = old.soldPlasticCredits + BigInt(soldPlasticCredit);
 
-      // Use Decimal for ALL precise calculations
-      const newSoldDecimal = new Decimal(newSold.toString());
+      const newSoldBigInt =
+        BigInt(old.soldPlasticCredits) + BigInt(soldPlasticCredit);
+
+      // Use Decimal for precise % progress math
+      const newSoldDecimal = new Decimal(newSoldBigInt.toString());
       const totalCreditsDecimal = new Decimal(
         old.totalPlasticCredits.toString()
       );
       const totalTokensDecimal = new Decimal(old.totalPlasticTokens.toString());
       const totalPlasticDecimal = new Decimal(old.totalPlastic.toString());
 
-      // Calculate the actual progress percentage (keep as decimal for precision)
       const progressPercentageDecimal = newSoldDecimal.div(totalCreditsDecimal);
 
-      // Calculate progress in basis points (for storage)
-      const progressBasisPoints = progressPercentageDecimal.mul(10000);
-      const progress = BigInt(progressBasisPoints.toFixed(0));
+      // Store basis points as integer for blockchain
+      const progressBasisPointsDecimal = progressPercentageDecimal.mul(10000);
+      const progressBigInt = BigInt(progressBasisPointsDecimal.toFixed(0));
 
-      // Calculate newSent and recovered using the precise percentage (NOT basis points)
-      const newSentDecimal = progressPercentageDecimal.mul(totalTokensDecimal);
-      const recoveredDecimal =
-        progressPercentageDecimal.mul(totalPlasticDecimal);
+      // Calculate sent/recovered using precise percentage
+      const newSentBigInt = BigInt(
+        progressPercentageDecimal.mul(totalTokensDecimal).toFixed(0)
+      );
+      const recoveredBigInt = BigInt(
+        progressPercentageDecimal.mul(totalPlasticDecimal).toFixed(0)
+      );
 
-      // Round to nearest whole number for final values
-      const newSent = BigInt(newSentDecimal.toFixed(0));
-      const recovered = BigInt(recoveredDecimal.toFixed(0));
-
-      console.log("Debug calculations:");
-      console.log("newSold:", newSold.toString());
-      console.log("totalCredits:", old.totalPlasticCredits.toString());
-      console.log("progressPercentage:", progressPercentageDecimal.toString());
-      console.log("progressBasisPoints:", progressBasisPoints.toString());
-      console.log("totalTokens:", old.totalPlasticTokens.toString());
-      console.log("newSentDecimal:", newSentDecimal.toString());
-      console.log("newSent:", newSent.toString());
-      console.log("recoveredDecimal:", recoveredDecimal.toString());
-      console.log("recovered:", recovered.toString());
-
+      // --- Updated roadmap datum ---
       const updatedDatum = new Constr(0, [
         fromText(old.preId),
         fromText(old.roadmapId),
         fromText(old.roadmapName),
         fromText(old.roadmapDescription),
-        BigInt(progress),
+        progressBigInt,
         old.adminsPkh,
         old.prePkh,
         old.preSkh,
         BigInt(old.totalPlasticCredits),
-        BigInt(newSold),
+        newSoldBigInt,
         BigInt(old.totalPlasticTokens),
-        BigInt(newSent),
+        newSentBigInt,
         BigInt(old.totalPlastic),
-        BigInt(recovered),
+        recoveredBigInt,
         fromText(old.createdAt),
       ]);
 
-      // Prepare reward contract UTxO
+      // --- Stake reward UTXO ---
       const stakeUtxos = await lucid.utxosAt(this.stakeRewardAddress);
       if (stakeUtxos.length === 0) throw new Error("No stake UTxOs found");
       const stakeUtxo = stakeUtxos[0];
@@ -321,70 +311,83 @@ export class Cardano {
 
       const ptUnit = `${this.policyId}${this.ptAssetName}`;
       const needPT = BigInt(soldPlasticCredit) * 80n;
-      // sum PT in this single UTxO
-      const contractPT = stakeUtxo.assets[ptUnit] || 0n;
+      const contractPT = BigInt(stakeUtxo.assets[ptUnit] || 0n);
 
-      // Collect any extra from admin if contractPT insufficient
+      // Collect from admin if not enough PT
       let extraAdminUtxo;
       if (contractPT < needPT) {
         const adminUtxos = await lucid.utxosAt(adminAddress);
         extraAdminUtxo = adminUtxos.find(
-          (u) => (u.assets[ptUnit] || 0n) >= needPT - contractPT
+          (u) => BigInt(u.assets[ptUnit] || 0n) >= needPT - contractPT
         );
         if (!extraAdminUtxo) throw new Error("Admin has insufficient PT");
       }
 
-      // Build redeemers and new lender datum
-      const refiRedeemer = Data.to(new Constr(0, [progress]));
+      // Redeemers
+      const refiRedeemer = Data.to(new Constr(0, [progressBigInt]));
       const lenderRedeemer = Data.to(
         buildLenderAction({ type: "FundPlastikToEscrow", amount: needPT })
       );
-      // 1. Compute the *new* reward from this sale only:
-      const precision = 1_000_000n;
-      const rewardMicro = (BigInt(soldPlasticCredit) * precision * 2n) / 100n;
-      // ▸ ΔR in “micro‑USDM” units
 
-      // 2. Distribute ΔR proportionally to existing stakes:
+      // --- Reward calculation ---
+      const rewardMicroBigInt = BigInt(
+        new Decimal(soldPlasticCredit)
+          .mul(new Decimal("1000000"))
+          .mul(new Decimal("0.02")) // 2%
+          .toFixed(0)
+      );
+
+      // --- Update lenders list ---
+      const totalPTDecimal = new Decimal(lender.totalPT.toString());
       const updatedLenders = lender.lenders.map(
         ([pk, [bal, oldDebt]]): [string, [bigint, bigint]] => {
-          const share =
-            lender.totalPT > 0n
-              ? (bal * rewardMicro) / lender.totalPT // bal/T_old * ΔR
-              : 0n;
-          return [pk, [bal, oldDebt + share]];
+          const balBig = BigInt(bal);
+          const oldDebtBig = BigInt(oldDebt);
+          if (totalPTDecimal.isZero()) {
+            return [pk, [balBig, oldDebtBig]];
+          }
+          const balDecimal = new Decimal(balBig.toString());
+          const shareBigInt = BigInt(
+            balDecimal
+              .div(totalPTDecimal)
+              .mul(new Decimal(rewardMicroBigInt.toString()))
+              .toFixed(0)
+          );
+          return [pk, [balBig, oldDebtBig + shareBigInt]];
         }
       );
 
-      // 3. Update your LenderDatum
+      // --- New lender datum ---
       const newLenderDatum: LenderDatum = {
         adminsPkh: lender.adminsPkh,
-        totalPT: lender.totalPT, // stakes haven’t changed
-        totalReward: lender.totalReward + rewardMicro,
+        totalPT: lender.totalPT,
+        totalReward: lender.totalReward + rewardMicroBigInt,
         lenders: updatedLenders,
       };
 
+      // --- Assets maps (force all to BigInt) ---
       const usdmAssetUnit: string = `${this.policyId}${this.usdmAssetName}`;
-      // Build assets for refi and stake outputs
       const refiAssets: Assets = {
-        lovelace: matchedUtxo.assets.lovelace,
-        [ptUnit]: (matchedUtxo.assets[ptUnit] || 0n) + needPT,
+        lovelace: BigInt(matchedUtxo.assets.lovelace || 0n),
+        [ptUnit]: BigInt(matchedUtxo.assets[ptUnit] || 0n) + needPT,
       };
-      if (matchedUtxo.assets[usdmAssetUnit]) {
-        refiAssets[usdmAssetUnit] = matchedUtxo.assets[usdmAssetUnit];
+      if (matchedUtxo.assets[usdmAssetUnit] !== undefined) {
+        refiAssets[usdmAssetUnit] = BigInt(
+          matchedUtxo.assets[usdmAssetUnit] || 0n
+        );
       }
 
       const stakeAssets: Assets = {
-        [usdmAssetUnit]: (stakeUtxo.assets[usdmAssetUnit] || 0n) + rewardMicro,
+        [usdmAssetUnit]:
+          BigInt(stakeUtxo.assets[usdmAssetUnit] || 0n) + rewardMicroBigInt,
       };
-      if (stakeUtxo.assets[ptUnit] - needPT >= 0n) {
-        stakeAssets[ptUnit] = (stakeUtxo.assets[ptUnit] || 0n) - needPT;
+      if (BigInt(stakeUtxo.assets[ptUnit] || 0n) - needPT >= 0n) {
+        stakeAssets[ptUnit] = BigInt(stakeUtxo.assets[ptUnit] || 0n) - needPT;
       }
-      // console.log(stakeAssets);
 
-      // Build Tx
+      // --- Transaction build ---
       let txBuilder = lucid
         .newTx()
-        // refi update
         .collectFrom([matchedUtxo], refiRedeemer)
         .attachSpendingValidator(this.refiValidator)
         .payToContract(
@@ -392,10 +395,8 @@ export class Cardano {
           { inline: Data.to(updatedDatum) },
           refiAssets
         )
-        // stake payout
         .collectFrom([stakeUtxo], lenderRedeemer);
 
-      // if extra admin funds needed, collect from admin UTxO
       if (extraAdminUtxo) {
         txBuilder = txBuilder.collectFrom([extraAdminUtxo]);
       }
@@ -413,19 +414,20 @@ export class Cardano {
       const signed = await tx.sign().complete();
       const hash = await signed.submit();
 
-      // after successfully updating roadmap check if roadmap is complete then save it into DB with name of completed Roadmap
-      const ptAssetUnit = `${this.policyId}${this.ptAssetName}`;
-      if (progress === 10000n) {
+      // Completion check
+      if (progressBigInt === 10000n) {
+        const ptAssetUnit = `${this.policyId}${this.ptAssetName}`;
         await Transaction.create({
           txDate: new Date(),
           txFee: 2,
-          amount: Number(needPT),
+          amount: Number(needPT), // explicit conversion for DB
           roadmapId,
           assetId: ptAssetUnit,
           hash: hash,
           type: TransactionType.Roadmap,
         });
       }
+
       return hash;
     } catch (err) {
       if (err instanceof Error) {
@@ -454,67 +456,281 @@ export class Cardano {
     return hash;
   }
 
+  // public async getRoadmapDatum(
+  //   preId: string,
+  //   roadmapId: string,
+  //   currentProgress?: number,
+  //   txHash?: string
+  // ): Promise<ProjectDatum> {
+  //   const lucid = this.getLucid();
+  //   const utxos: UTxO[] = await lucid.utxosAt(this.refiContractAddress);
+
+  //   // check if txHash is updated OnChain and the progress of it is greater than current progress
+  //   // 1. Find the UTxO whose datum’s roadmapId field matches
+  //   for (const utxo of utxos) {
+  //     if (!utxo.datum) continue;
+
+  //     const decoded = Data.from(utxo.datum) as Constr<Data>;
+  //     const fields = decoded.fields;
+
+  //     // Field layout (0: preId, 1: roadmapId, 2: name, 3: desc, 4: progress, …)
+  //     const thisRoadmapId = toText(fields[1] as string);
+  //     if (thisRoadmapId !== roadmapId) continue;
+
+  //     // 2. Extract and convert each field
+  //     const rawProgress = Number(fields[4] as bigint);
+  //     const progress = rawProgress > 0 ? rawProgress / 100 : 0;
+
+  //     const paymentCred = lucid.utils.keyHashToCredential(fields[6] as string);
+  //     const stakeCred = lucid.utils.keyHashToCredential(fields[7] as string);
+  //     const preAddress = lucid.utils.credentialToAddress(
+  //       paymentCred,
+  //       stakeCred
+  //     );
+
+  //     const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
+  //     const ptAssetUnit = `${this.policyId}${this.ptAssetName}`;
+  //     const fundsMissing =
+  //       ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
+
+  //     const usdmAssetUnit: string = `${this.policyId}${this.usdmAssetName}`;
+  //     const fundsDistributed =
+  //       utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;
+
+  //     // 3. Build and return the ProjectDatum
+  //     return {
+  //       preId: toText(fields[0] as string),
+  //       roadmapId: thisRoadmapId,
+  //       roadmapName: toText(fields[2] as string),
+  //       roadmapDescription: toText(fields[3] as string),
+  //       progress,
+  //       preAddress,
+  //       totalPlasticCredits: Number(fields[8] as bigint),
+  //       soldPlasticCredits: Number(fields[9] as bigint),
+  //       totalPlasticTokens: Number(fields[10] as bigint),
+  //       sentPlasticTokens: Number(fields[11] as bigint),
+  //       totalPlastic: Number(fields[12] as bigint),
+  //       recoveredPlastic: Number(fields[13] as bigint),
+  //       createdAt: toText(fields[14] as string),
+  //       status: "active",
+  //       fundsMissing: fundsMissing.toString(),
+  //       fundsDistributed: fundsDistributed.toString(),
+  //     };
+  //   }
+
+  //   throw new Error(
+  //     `Roadmap ${roadmapId} not found at ${this.refiContractAddress}`
+  //   );
+  // }
   public async getRoadmapDatum(
     preId: string,
-    roadmapId: string
+    roadmapId: string,
+    txHash?: string,
+    currentProgress?: number
   ): Promise<ProjectDatum> {
     const lucid = this.getLucid();
-    const utxos: UTxO[] = await lucid.utxosAt(this.refiContractAddress);
 
-    // 1. Find the UTxO whose datum’s roadmapId field matches
-    for (const utxo of utxos) {
-      if (!utxo.datum) continue;
-
-      const decoded = Data.from(utxo.datum) as Constr<Data>;
-      const fields = decoded.fields;
-
-      // Field layout (0: preId, 1: roadmapId, 2: name, 3: desc, 4: progress, …)
-      const thisRoadmapId = toText(fields[1] as string);
-      if (thisRoadmapId !== roadmapId) continue;
-
-      // 2. Extract and convert each field
-      const rawProgress = Number(fields[4] as bigint);
-      const progress = rawProgress > 0 ? rawProgress / 100 : 0;
-
-      const paymentCred = lucid.utils.keyHashToCredential(fields[6] as string);
-      const stakeCred = lucid.utils.keyHashToCredential(fields[7] as string);
-      const preAddress = lucid.utils.credentialToAddress(
-        paymentCred,
-        stakeCred
+    // If txHash is provided, first confirm the transaction is on-chain
+    if (txHash) {
+      console.log(
+        `Waiting for transaction ${txHash} to be confirmed on-chain...`
       );
+      const confirmed = await this.updatedOnChain(txHash);
+      if (!confirmed) {
+        throw new Error(
+          `Transaction ${txHash} not confirmed on-chain within timeout`
+        );
+      }
+      console.log(`Transaction ${txHash} confirmed on-chain`);
+    }
 
-      const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
-      const ptAssetUnit = `${this.policyId}${this.ptAssetName}`;
-      const fundsMissing =
-        ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
+    // If currentProgress is provided, we need to poll until progress increases
+    const maxRetries = currentProgress !== undefined ? 10 : 1;
+    const retryDelay = 5000; // 5 seconds
 
-      const usdmAssetUnit: string = `${this.policyId}${this.usdmAssetName}`;
-      const fundsDistributed =
-        utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const utxos: UTxO[] = await lucid.utxosAt(this.refiContractAddress);
 
-      // 3. Build and return the ProjectDatum
-      return {
-        preId: toText(fields[0] as string),
-        roadmapId: thisRoadmapId,
-        roadmapName: toText(fields[2] as string),
-        roadmapDescription: toText(fields[3] as string),
-        progress,
-        preAddress,
-        totalPlasticCredits: Number(fields[8] as bigint),
-        soldPlasticCredits: Number(fields[9] as bigint),
-        totalPlasticTokens: Number(fields[10] as bigint),
-        sentPlasticTokens: Number(fields[11] as bigint),
-        totalPlastic: Number(fields[12] as bigint),
-        recoveredPlastic: Number(fields[13] as bigint),
-        createdAt: toText(fields[14] as string),
-        status: "active",
-        fundsMissing: fundsMissing.toString(),
-        fundsDistributed: fundsDistributed.toString(),
-      };
+      // Find the UTxO whose datum's roadmapId field matches
+      for (const utxo of utxos) {
+        if (!utxo.datum) continue;
+
+        const decoded = Data.from(utxo.datum) as Constr<Data>;
+        const fields = decoded.fields;
+
+        // Field layout (0: preId, 1: roadmapId, 2: name, 3: desc, 4: progress, …)
+        const thisRoadmapId = toText(fields[1] as string);
+        if (thisRoadmapId !== roadmapId) continue;
+
+        // Extract and convert progress field
+        const rawProgress = Number(fields[4] as bigint);
+        const progress = rawProgress > 0 ? rawProgress / 100 : 0;
+
+        // Check if progress has increased (if currentProgress is provided)
+        if (currentProgress !== undefined && progress <= currentProgress) {
+          console.log(
+            `Progress hasn't increased yet. Current: ${progress}, Expected: >${currentProgress}`
+          );
+
+          // If not the last attempt, wait and retry
+          if (attempt < maxRetries - 1) {
+            await new Promise((resolve) => setTimeout(resolve, retryDelay));
+            break; // Break inner loop to retry fetching UTxOs
+          } else {
+            // Last attempt - could throw error or return current data
+            console.log(`Max retries reached. Progress still at ${progress}`);
+            // Uncomment the line below if you want to throw an error when progress doesn't increase
+            // throw new Error(`Progress did not increase beyond ${currentProgress} after ${maxRetries} attempts`);
+          }
+        }
+
+        // Build the credential objects
+        const paymentCred = lucid.utils.keyHashToCredential(
+          fields[6] as string
+        );
+        const stakeCred = lucid.utils.keyHashToCredential(fields[7] as string);
+        const preAddress = lucid.utils.credentialToAddress(
+          paymentCred,
+          stakeCred
+        );
+
+        // Calculate funds
+        const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
+        const ptAssetUnit = `${this.policyId}${this.ptAssetName}`;
+        const fundsMissing =
+          ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
+
+        const usdmAssetUnit: string = `${this.policyId}${this.usdmAssetName}`;
+        const fundsDistributed =
+          utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;
+
+        // Build and return the ProjectDatum
+        return {
+          preId: toText(fields[0] as string),
+          roadmapId: thisRoadmapId,
+          roadmapName: toText(fields[2] as string),
+          roadmapDescription: toText(fields[3] as string),
+          progress,
+          preAddress,
+          totalPlasticCredits: Number(fields[8] as bigint),
+          soldPlasticCredits: Number(fields[9] as bigint),
+          totalPlasticTokens: Number(fields[10] as bigint),
+          sentPlasticTokens: Number(fields[11] as bigint),
+          totalPlastic: Number(fields[12] as bigint),
+          recoveredPlastic: Number(fields[13] as bigint),
+          createdAt: toText(fields[14] as string),
+          status: "active",
+          fundsMissing: fundsMissing.toString(),
+          fundsDistributed: fundsDistributed.toString(),
+        };
+      }
     }
 
     throw new Error(
-      `Roadmap ${roadmapId} not found at ${this.refiContractAddress}`
+      `Roadmap ${roadmapId} not found at ${this.refiContractAddress}${
+        currentProgress !== undefined
+          ? ` or progress did not increase beyond ${currentProgress}`
+          : ""
+      }`
+    );
+  }
+
+  public async fundsUpdated(
+    preId: string,
+    roadmapId: string,
+    txHash: string,
+    currentUSDM?: number
+  ): Promise<ProjectDatum> {
+    const lucid = this.getLucid();
+
+    // If txHash is provided, first confirm the transaction is on-chain
+    if (txHash) {
+      console.log(
+        `Waiting for transaction ${txHash} to be confirmed on-chain...`
+      );
+      const confirmed = await this.updatedOnChain(txHash);
+      if (!confirmed) {
+        throw new Error(
+          `Transaction ${txHash} not confirmed on-chain within timeout`
+        );
+      }
+      console.log(`Transaction ${txHash} confirmed on-chain`);
+    }
+
+    const maxRetries = currentUSDM !== undefined ? 10 : 1;
+    const retryDelay = 5000; // 5 seconds
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const utxos: UTxO[] = await lucid.utxosAt(this.refiContractAddress);
+
+      for (const utxo of utxos) {
+        if (!utxo.datum) continue;
+        const decoded = Data.from(utxo.datum) as Constr<Data>;
+        const fields = decoded.fields;
+        const thisRoadmapId = toText(fields[1] as string);
+        const thisPreId = toText(fields[0] as string);
+        if (thisRoadmapId !== roadmapId || thisPreId !== preId) continue;
+
+        const usdmAssetUnit = `${this.policyId}${this.usdmAssetName}`;
+        const usdmAmount = Number(utxo.assets[usdmAssetUnit]) || 0;
+
+        // If currentUSDM is provided, check if amount increased
+        if (currentUSDM !== undefined && usdmAmount <= currentUSDM) {
+          console.log(
+            `USDM amount hasn't increased yet. Current: ${usdmAmount}, Expected: >${currentUSDM}`
+          );
+
+          // Not updated yet, wait and retry
+          continue;
+        }
+
+        // Build the credential objects
+        const paymentCred = lucid.utils.keyHashToCredential(
+          fields[6] as string
+        );
+        const stakeCred = lucid.utils.keyHashToCredential(fields[7] as string);
+        const preAddress = lucid.utils.credentialToAddress(
+          paymentCred,
+          stakeCred
+        );
+
+        // Calculate funds
+        const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
+        const ptAssetUnit = `${this.policyId}${this.ptAssetName}`;
+        const fundsMissing =
+          ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
+
+        const fundsDistributed =
+          utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;
+
+        return {
+          preId: toText(fields[0] as string),
+          roadmapId: thisRoadmapId,
+          roadmapName: toText(fields[2] as string),
+          roadmapDescription: toText(fields[3] as string),
+          progress: Number(fields[4] as bigint) / 100,
+          preAddress,
+          totalPlasticCredits: Number(fields[8] as bigint),
+          soldPlasticCredits: Number(fields[9] as bigint),
+          totalPlasticTokens: Number(fields[10] as bigint),
+          sentPlasticTokens: Number(fields[11] as bigint),
+          totalPlastic: Number(fields[12] as bigint),
+          recoveredPlastic: Number(fields[13] as bigint),
+          createdAt: toText(fields[14] as string),
+          status: "active",
+          fundsMissing: fundsMissing.toString(),
+          fundsDistributed: fundsDistributed.toString(),
+        };
+      }
+
+      if (attempt < maxRetries - 1) {
+        // Wait for the next polling interval before retrying
+        await new Promise((res) => setTimeout(res, retryDelay));
+      }
+    }
+
+    throw new Error(
+      `Roadmap ${roadmapId} not found or funds not updated at ${this.refiContractAddress} after ${maxRetries} attempts`
     );
   }
 

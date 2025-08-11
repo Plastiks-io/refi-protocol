@@ -7,8 +7,14 @@ import { connection } from "../connection.js";
 const worker = new Worker<BuyNftJob>(
   "buyNftQueue",
   async (job) => {
-    const { txHash, buyerAddress, preId, roadmapId, soldPlasticCredit } =
-      job.data;
+    const {
+      txHash,
+      buyerAddress,
+      preId,
+      roadmapId,
+      soldPlasticCredit,
+      currentProgress,
+    } = job.data;
 
     console.log("👷 Buy NFT worker processing job", txHash);
 
@@ -42,11 +48,14 @@ const worker = new Worker<BuyNftJob>(
       soldPlasticCredit,
       roadmapId
     );
-    // 4) check if transaction has been updated on-chain for updated Roadmap
-    await cardano.updatedOnChain(roadmapTx);
 
-    // 5) fetch the fresh ReFi datum
-    const updatedDatum = await cardano.getRoadmapDatum(preId, roadmapId);
+    //4 ) fetch the fresh ReFi datum
+    const updatedDatum = await cardano.getRoadmapDatum(
+      preId,
+      roadmapId,
+      roadmapTx,
+      currentProgress
+    );
 
     // **EMIT THE SOCKET EVENT**
     const io = getIO();

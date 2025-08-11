@@ -8,11 +8,13 @@ export interface BuyNftJob {
   preId: string;
   roadmapId: string;
   soldPlasticCredit: number;
+  currentProgress?: number;
 }
 
-export interface RefiContractJob {
+export interface UpdateFundsJob {
   preId: string;
   roadmapId: string;
+  currentUSDM: number;
   txHash: string;
 }
 export interface StakeContractJob {
@@ -24,10 +26,9 @@ export const buyNftQueue = new Queue<BuyNftJob>("buyNftQueue", {
 });
 
 // New queues
-export const updateRefiContractQueue = new Queue<RefiContractJob>(
-  "updateRefiContractQueue",
-  { connection }
-);
+export const updateFundsQueue = new Queue<UpdateFundsJob>("updateFundsQueue", {
+  connection,
+});
 
 export const updateStakeContractQueue = new Queue<StakeContractJob>(
   "updateStakeContractQueue",

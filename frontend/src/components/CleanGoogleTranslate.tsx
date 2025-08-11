@@ -17,16 +17,16 @@ interface Language {
 
 const languages: Language[] = [
   { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "es", name: "Spanish", flag: "🇪🇸" },
-  { code: "fr", name: "French", flag: "🇫🇷" },
-  { code: "de", name: "German", flag: "🇩🇪" },
-  { code: "hi", name: "Hindi", flag: "🇮🇳" },
-  { code: "hy", name: "Armenian", flag: "🇦🇲" },
-  { code: "zh-CN", name: "Chinese", flag: "🇨🇳" },
-  { code: "ja", name: "Japanese", flag: "🇯🇵" },
-  { code: "ar", name: "Arabic", flag: "🇸🇦" },
-  { code: "pt", name: "Portuguese", flag: "🇧🇷" },
-  { code: "ru", name: "Russian", flag: "🇷🇺" },
+  { code: "es", name: "Español", flag: "🇪🇸" },
+  { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "hi", name: "हिंदी", flag: "🇮🇳" },
+  { code: "hy", name: "հայ", flag: "🇦🇲" },
+  { code: "zh-CN", name: "中国人", flag: "🇨🇳" },
+  { code: "ja", name: "日本語", flag: "🇯🇵" },
+  { code: "ar", name: "عربي", flag: "🇸🇦" },
+  { code: "pt", name: "Português", flag: "🇧🇷" },
+  { code: "ru", name: "Русский", flag: "🇷🇺" },
 ];
 
 const CleanGoogleTranslate: React.FC = () => {
@@ -147,11 +147,16 @@ const CleanGoogleTranslate: React.FC = () => {
         <select
           value={currentLang}
           onChange={(e) => changeLanguage(e.target.value)}
-          className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer shadow-sm hover:shadow-md transition-all"
+          className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer shadow-sm hover:shadow-md transition-all notranslate"
           style={{ color: "black" }}
+          translate="no"
         >
           {languages.map((language) => (
-            <option key={language.code} value={language.code}>
+            <option
+              key={language.code}
+              value={language.code}
+              className="notranslate"
+            >
               {language.flag} {language.name}
             </option>
           ))}

@@ -3,7 +3,7 @@ import { Op } from "sequelize";
 import axios from "axios";
 import { Transaction, TransactionType } from "../models/transaction.model.js";
 import { Request, Response } from "express";
-import { updateRefiContractQueue } from "../bull/queues.js";
+import { updateFundsQueue } from "../bull/queues.js";
 
 interface TransactionAttributes {
   txDate: Date;
@@ -27,6 +27,7 @@ interface MultipleAssetTransactionAttributes {
   hash: string;
   type1: TransactionType.Token;
   type2: TransactionType.Transfer;
+  currentUSDM: number;
 }
 
 // src/controllers/transaction.controller.ts
@@ -103,9 +104,10 @@ const saveMultipleAssetTransactions = async (req: Request, res: Response) => {
       req.body;
 
     // before creating Transaction push job into updateRefiConract queue
-    const job = await updateRefiContractQueue.add("updateRefiContractQueue", {
+    const job = await updateFundsQueue.add("updateFundsQueue", {
       preId: multipleAssetTransactionAttributes.preId,
       roadmapId: multipleAssetTransactionAttributes.roadmapId,
+      currentUSDM: multipleAssetTransactionAttributes.currentUSDM,
       txHash: multipleAssetTransactionAttributes.hash,
     });
 

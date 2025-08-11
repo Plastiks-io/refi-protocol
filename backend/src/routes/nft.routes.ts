@@ -8,7 +8,7 @@ router.post("/buy", async (req, res) => {
   const job = await buyNftQueue.add("buyNftQueue", payload);
   res.json({
     jobId: job.id,
-    message: "NFT buy successfully",
+    message: "NFT buy processing started",
     success: true,
   });
 });

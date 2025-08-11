@@ -51,7 +51,14 @@ const NFTPurchase: React.FC = () => {
       }
       const preId = roadmaps[index].preId;
       const roadmapId = roadmaps[index].roadmapId;
-      await cardanoClient.sentPc(wallet, qty, preId, roadmapId);
+      const currentProgress = roadmaps[index].progress;
+      await cardanoClient.sentPc(
+        wallet,
+        qty,
+        preId,
+        roadmapId,
+        currentProgress
+      );
       setQuantities((prev) => ({ ...prev, [index]: 1 }));
     } catch (error) {
       console.error("Error purchasing NFT:", error);
