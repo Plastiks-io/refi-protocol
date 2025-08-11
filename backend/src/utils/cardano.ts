@@ -20,6 +20,8 @@ import {
 } from "../controllers/stakeReward.controller.js";
 import { LenderDatum } from "../types/stake.reward.types.js";
 import { ProjectDatum } from "../types/roadmap.types.js";
+import config from "../config/environment.js";
+import { Decimal } from "decimal.js";
 
 export interface NetworkConfig {
   projectId: string;
@@ -37,16 +39,16 @@ export class Cardano {
 
   // Define supported network configs
   private static NETWORKS: NetworkConfig = {
-    baseUrl: process.env.BLOCKFROST_URL!,
-    projectId: process.env.BLOCKFROST_PROJECT_ID!,
+    baseUrl: config.BLOCKFROST.URL!,
+    projectId: config.BLOCKFROST.PROJECT_ID!,
     lucidNetwork: "Preprod",
   };
 
   constructor() {
     // Initialize asset units from environment variables
-    this.policyId = process.env.POLICY_ID!;
-    this.ptAssetName = process.env.PLASTIC_TOKEN_NAME!;
-    this.usdmAssetName = process.env.USDM_TOKEN_NAME!;
+    this.policyId = config.ASSETS.POLICY_ID!;
+    this.ptAssetName = config.ASSETS.PLASTIC_TOKEN_NAME!;
+    this.usdmAssetName = config.ASSETS.USDM_TOKEN_NAME!;
     // Validate required environment variables
     if (!this.policyId || !this.ptAssetName || !this.usdmAssetName) {
       throw new Error(
@@ -55,8 +57,8 @@ export class Cardano {
     }
 
     // Initialize validators
-    const stakeRewardCbor = process.env.STAKE_REWARD_CBOR;
-    const refiCbor = process.env.REFI_CBOR;
+    const stakeRewardCbor = config.CONTRACTS.STAKE_REWARD_CBOR;
+    const refiCbor = config.CONTRACTS.REFI_CBOR;
 
     if (!stakeRewardCbor) {
       throw new Error("STAKE_REWARD_CBOR environment variable is required");
@@ -150,7 +152,7 @@ export class Cardano {
 
     try {
       const lucid = this.getLucid();
-      const seed = process.env.PC_WALLET!;
+      const seed = config.WALLETS.PC_WALLET!;
       lucid.selectWalletFromSeed(seed);
       const { paymentCredential } = lucid.utils.getAddressDetails(
         await lucid.wallet.address()
@@ -232,9 +234,12 @@ export class Cardano {
   ): Promise<string> {
     try {
       const lucid = this.getLucid();
-      const adminSeed = process.env.ADMIN_SEED!;
+      const adminSeed = config.WALLETS.ADMIN_SEED!;
       lucid.selectWalletFromSeed(adminSeed);
       const adminAddress = await lucid.wallet.address();
+
+      // Configure Decimal for high precision
+      Decimal.set({ precision: 50, rounding: 4 }); // 50 decimal places, round half up
 
       // Find matching UTXO at refi contract
       const utxos = await lucid.utxosAt(this.refiContractAddress);
@@ -250,9 +255,42 @@ export class Cardano {
 
       const old = parseRoadmapDatum(Data.from(matchedUtxo.datum));
       const newSold = old.soldPlasticCredits + BigInt(soldPlasticCredit);
-      const progress = (newSold * 10000n) / old.totalPlasticCredits;
-      const newSent = (progress * old.totalPlasticTokens) / 10000n;
-      const recovered = (progress * old.totalPlastic) / 10000n;
+
+      // Use Decimal for ALL precise calculations
+      const newSoldDecimal = new Decimal(newSold.toString());
+      const totalCreditsDecimal = new Decimal(
+        old.totalPlasticCredits.toString()
+      );
+      const totalTokensDecimal = new Decimal(old.totalPlasticTokens.toString());
+      const totalPlasticDecimal = new Decimal(old.totalPlastic.toString());
+
+      // Calculate the actual progress percentage (keep as decimal for precision)
+      const progressPercentageDecimal = newSoldDecimal.div(totalCreditsDecimal);
+
+      // Calculate progress in basis points (for storage)
+      const progressBasisPoints = progressPercentageDecimal.mul(10000);
+      const progress = BigInt(progressBasisPoints.toFixed(0));
+
+      // Calculate newSent and recovered using the precise percentage (NOT basis points)
+      const newSentDecimal = progressPercentageDecimal.mul(totalTokensDecimal);
+      const recoveredDecimal =
+        progressPercentageDecimal.mul(totalPlasticDecimal);
+
+      // Round to nearest whole number for final values
+      const newSent = BigInt(newSentDecimal.toFixed(0));
+      const recovered = BigInt(recoveredDecimal.toFixed(0));
+
+      console.log("Debug calculations:");
+      console.log("newSold:", newSold.toString());
+      console.log("totalCredits:", old.totalPlasticCredits.toString());
+      console.log("progressPercentage:", progressPercentageDecimal.toString());
+      console.log("progressBasisPoints:", progressBasisPoints.toString());
+      console.log("totalTokens:", old.totalPlasticTokens.toString());
+      console.log("newSentDecimal:", newSentDecimal.toString());
+      console.log("newSent:", newSent.toString());
+      console.log("recoveredDecimal:", recoveredDecimal.toString());
+      console.log("recovered:", recovered.toString());
+
       const updatedDatum = new Constr(0, [
         fromText(old.preId),
         fromText(old.roadmapId),
@@ -400,7 +438,7 @@ export class Cardano {
   public async refundAda(address: string, amount: number): Promise<string> {
     const lucid = this.getLucid();
     // Select your centralized admin wallet (from seed)
-    lucid.selectWalletFromSeed(process.env.ADMIN_SEED!);
+    lucid.selectWalletFromSeed(config.WALLETS.ADMIN_SEED!);
 
     // Calculate exact ADA amount to refund:
     // You can store it in job.data or re‑derive from the txHash UTxO.

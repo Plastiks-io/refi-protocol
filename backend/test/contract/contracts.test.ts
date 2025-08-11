@@ -1,28 +1,21 @@
-// test/contract/contracts.test.ts
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import * as Validator from "../../src/contract/contracts";
+import { describe, it, expect, vi } from "vitest";
+
+// Mock the config module
+vi.mock("../../src/config/environment", () => {
+  return {
+    default: {
+      CONTRACTS: {
+        STAKE_REWARD_CBOR: "4e4d01000033222220051200120011",
+        REFI_CBOR: "4e4d010000998877665544332211",
+      },
+      // Add other config properties if needed for these tests
+    },
+  };
+});
 
 describe("Lucid Validator exports", () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    // 환경 변수 백업 후 설정
-    process.env = {
-      ...originalEnv,
-      STAKE_REWARD_CBOR: "4e4d01000033222220051200120011", // 예시 CBOR
-      REFI_CBOR: "4e4d010000998877665544332211", // 예시 CBOR
-    };
-
-    // 모듈 캐시 초기화 (환경 변수 반영 위해)
-    vi.resetModules();
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
-
-  // stakeRewardValidator 내보내기 확인: 올바른 형식과 스크립트
   it("should export stakeRewardValidator with type and script", async () => {
+    // Dynamically import to ensure fresh module with mock
     const { stakeRewardValidator } = await import(
       "../../src/contract/contracts"
     );
@@ -32,8 +25,8 @@ describe("Lucid Validator exports", () => {
     expect(stakeRewardValidator.script).toBe("4e4d01000033222220051200120011");
   });
 
-  // refiValidator 내보내기 확인: 올바른 형식과 스크립트
   it("should export refiValidator with type and script", async () => {
+    // Dynamically import to ensure fresh module with mock
     const { refiValidator } = await import("../../src/contract/contracts");
 
     expect(refiValidator).toBeDefined();

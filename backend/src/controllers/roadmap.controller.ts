@@ -8,23 +8,19 @@ import {
   Data,
   toText,
 } from "lucid-cardano";
-import dotenv from "dotenv";
 import {
   InitializeRoadmapRequest,
   ProjectDatum,
 } from "../types/roadmap.types.js";
-dotenv.config();
 import CompletedRoadmap from "../models/completedRoadmap.model.js";
 import ArchivedRoadmap from "../models/archivedRoadmap.model.js";
 import { getPubKeyHash } from "./stakeReward.controller.js";
 import { refiValidator } from "../contract/contracts.js";
+import config from "../config/environment.js";
 
 const initializeLucid = async () => {
   const lucid = await Lucid.new(
-    new Blockfrost(
-      process.env.BLOCKFROST_URL!,
-      process.env.BLOCKFROST_PROJECT_ID!
-    ),
+    new Blockfrost(config.BLOCKFROST.URL!, config.BLOCKFROST.PROJECT_ID!),
     "Preprod"
   );
   return lucid;
@@ -60,7 +56,7 @@ const initializeRoadmap = async (
 
     const lucid = await initializeLucid();
 
-    const adminSeed: string = process.env.ADMIN_SEED!;
+    const adminSeed: string = config.WALLETS.ADMIN_SEED!;
     lucid.selectWalletFromSeed(adminSeed);
     const adminsPkh = await getPubKeyHash(lucid);
 
@@ -171,7 +167,7 @@ const getAllActiveRoadmaps = async (
 ): Promise<void> => {
   try {
     const lucid = await initializeLucid();
-    const cbor = process.env.REFI_CBOR!;
+    const cbor = config.CONTRACTS.REFI_CBOR!;
     const RefiScript: Script = {
       type: "PlutusV2",
       script: cbor,
@@ -205,14 +201,14 @@ const getAllActiveRoadmaps = async (
           stakeCredential
         );
         const precisionFactor = 1_000_000n; // 1 PC = 1,000,000 micro PC
-        const ptPolicyId = process.env.POLICY_ID!;
-        const ptAssetName = process.env.PLASTIC_TOKEN_NAME!;
+        const ptPolicyId = config.ASSETS.POLICY_ID!;
+        const ptAssetName = config.ASSETS.PLASTIC_TOKEN_NAME!;
         const ptAssetUnit = `${ptPolicyId}${ptAssetName}`;
         const fundsMissing =
           ((utxo.assets[ptAssetUnit] ?? 0n) * precisionFactor) / 100n;
 
-        const usdmPolicyId = process.env.POLICY_ID!;
-        const usdmTokenName = process.env.USDM_TOKEN_NAME!;
+        const usdmPolicyId = config.ASSETS.POLICY_ID!;
+        const usdmTokenName = config.ASSETS.USDM_TOKEN_NAME!;
         const usdmAssetUnit: string = `${usdmPolicyId}${usdmTokenName}`;
         const fundsDistributed =
           utxo.assets[usdmAssetUnit] ?? 0n / precisionFactor;

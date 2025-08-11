@@ -5,10 +5,14 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "nodemon --ext ts --exec \"npx tsc && node dist/index.js\"",
-    "test": "vitest",
-    "test:watch": "vitest --watch"
+    "start": "NODE_ENV=production node dist/index.js",
+    "start:dev": "NODE_ENV=development node dist/index.js",
+    "start:test": "NODE_ENV=testing node dist/index.js",
+    "dev": "NODE_ENV=development nodemon --ext ts --exec \"npx tsc && node dist/index.js\"",
+    "dev:prod": "NODE_ENV=production nodemon --ext ts --exec \"npx tsc && node dist/index.js\"",
+    "test": "NODE_ENV=testing vitest",
+    "test:watch": "NODE_ENV=testing vitest --watch",
+    "test:run": "NODE_ENV=testing vitest run"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",
@@ -42,6 +46,7 @@
     "bullmq": "^5.56.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "decimal.js": "^10.6.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "fs-extra": "^11.3.0",

@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:production": "vite --mode production",
+    "dev:testing": "vite --mode testing",
     "build": "tsc -b && vite build",
+    "build:production": "tsc -b && vite build --mode production",
+    "build:test": "tsc -b && vite build --mode testing",
     "lint": "eslint .",
     "preview": "vite preview",
     "serve": "serve -s dist -l 4173",
-    "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test": "vitest --mode testing",
+    "test:ui": "vitest --ui --mode testing"
   },
   "dependencies": {
     "@emurgo/cardano-serialization-lib-browser": "^15.0.0",
@@ -26,6 +30,7 @@
     "axios": "^1.8.4",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
+    "decimal.js": "^10.6.0",
     "lucid-cardano": "^0.10.11",
     "lucide-react": "^0.482.0",
     "pbkdf2": "^3.1.3",
@@ -49,6 +54,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/decimal.js": "^0.0.32",
     "@types/jest": "^29.5.14",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.0.4",

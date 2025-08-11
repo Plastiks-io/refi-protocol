@@ -1,13 +1,12 @@
 import { Validator } from "lucid-cardano";
-import dotenv from "dotenv";
-dotenv.config();
+import config from "../config/environment.js";
 
 export const stakeRewardValidator: Validator = {
   type: "PlutusV2",
-  script: process.env.STAKE_REWARD_CBOR!,
+  script: config.CONTRACTS.STAKE_REWARD_CBOR!,
 };
 
 export const refiValidator: Validator = {
   type: "PlutusV2",
-  script: process.env.REFI_CBOR!,
+  script: config.CONTRACTS.REFI_CBOR!,
 };

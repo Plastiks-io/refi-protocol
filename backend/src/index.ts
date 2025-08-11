@@ -4,8 +4,9 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import { Server as IOServer } from "socket.io";
 import { initIO } from "./utils/socket.js";
-import dotenv from "dotenv";
-dotenv.config();
+
+// ✅ Import your environment configuration
+import config from "./config/environment.js";
 
 import sequelize from "./db/config.js";
 import { seedSuperAdmin } from "./db/seed-super-admin.js";
@@ -16,7 +17,7 @@ import adminsRouter from "./routes/admin.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
 
-// ESM “is this the main module?” check
+// ESM "is this the main module?" check
 import { fileURLToPath } from "url";
 import path from "path";
 const __filename = fileURLToPath(import.meta.url);
@@ -28,26 +29,23 @@ export async function bootstrap(): Promise<void> {
   // 1. Seed Super‑Admin
   try {
     await sequelize.authenticate();
-    console.log("Database connection OK");
+    console.log("✅ Database connection OK");
 
     await sequelize.sync({ alter: true });
-    console.log("Models synced with database");
+    console.log("✅ Models synced with database");
 
     await seedSuperAdmin();
   } catch (err) {
-    console.error("Database init failed:", err);
+    console.error("❌ Database init failed:", err);
     process.exit(1);
   }
 
   // 2. Create Express app
-  // const app = express();
-  const PORT = Number(process.env.PORT) || 8000;
-
   const app = express();
   const server = http.createServer(app);
   const io = new IOServer(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      origin: [config.FRONTEND_URL, config.FRONTEND_URL_2],
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -59,7 +57,7 @@ export async function bootstrap(): Promise<void> {
 
   app.use(
     cors({
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      origin: [config.FRONTEND_URL, config.FRONTEND_URL_2],
       credentials: true,
     })
   );
@@ -68,8 +66,14 @@ export async function bootstrap(): Promise<void> {
 
   // 3. Mount routes
   app.get("/", (_req: Request, res: Response) =>
-    res.send("Hello, TypeScript with Express!")
+    res.json({
+      message: "Plastiks Backend API",
+      environment: config.NODE_ENV,
+      version: "1.0.0",
+      timestamp: new Date().toISOString(),
+    })
   );
+
   app.use("/roadmap", roadmapRoutes);
   app.use("/nft", nftRoutes);
   app.use("/admin", adminsRouter);
@@ -77,11 +81,14 @@ export async function bootstrap(): Promise<void> {
   app.use("/transaction", transactionRoutes);
 
   // 4. Start server if run directly
-  if (process.argv[1] === __filename) {
-    server.listen(PORT, () =>
-      console.log(`🚀 Server listening on http://localhost:${PORT}`)
-    );
-  }
+  server.listen(config.PORT, () =>
+    console.log(
+      `🚀 Plastiks Backend Server running on port ${config.PORT} [${config.NODE_ENV}]`
+    )
+  );
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  console.error("❌ Bootstrap failed:", error);
+  process.exit(1);
+});

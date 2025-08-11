@@ -1,20 +1,27 @@
 import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
+import config from "../config/environment.js";
 
-dotenv.config();
+const sequelize = new Sequelize(
+  config.DATABASE.NAME!,
+  config.DATABASE.USER!,
+  config.DATABASE.PASSWORD!,
+  {
+    host: config.DATABASE.HOST,
+    port: config.DATABASE.PORT,
+    dialect: "postgres",
 
-const sequelize = new Sequelize({
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT || "5432", 10),
-  dialect: "postgres",
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  logging: (msg) => {
-    if (msg.toLowerCase().includes("error")) {
-      console.error("Sequelize Error:", msg);
-    }
-  },
-});
+    logging: (msg) => {
+      if (msg.toLowerCase().includes("error")) {
+        console.error("Sequelize Error:", msg);
+      }
+    },
+    pool: {
+      max: config.NODE_ENV === "production" ? 20 : 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+  }
+);
 
 export default sequelize;

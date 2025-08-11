@@ -1,6 +1,6 @@
 // src/models/completedRoadmap.model.ts
 
-import { Model, DataTypes, Optional } from "sequelize";
+import { Model, DataTypes, Optional, DecimalDataType } from "sequelize";
 import sequelize from "../db/config.js";
 
 // 1. List all columns in your table
@@ -10,7 +10,7 @@ export interface CompletedRoadmapAttributes {
   roadmapId: string;
   roadmapName: string;
   roadmapDescription: string;
-  progress: number;
+  progress: DecimalDataType;
   preAddress: string;
   totalPlasticCredits: number;
   soldPlasticCredits: number;
@@ -38,7 +38,7 @@ export class CompletedRoadmap
   declare roadmapId: string;
   declare roadmapName: string;
   declare roadmapDescription: string;
-  declare progress: number;
+  declare progress: DecimalDataType;
   declare preAddress: string;
   declare totalPlasticCredits: number;
   declare soldPlasticCredits: number;
@@ -76,7 +76,7 @@ CompletedRoadmap.init(
       allowNull: false,
     },
     progress: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(5, 2),
       allowNull: false,
     },
     preAddress: {

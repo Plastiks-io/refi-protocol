@@ -1,102 +1,144 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { seedSuperAdmin } from "../../src/db/seed-super-admin";
 import { Admin, Role } from "../../src/models/admin.model";
-// Mock dependencies
-vi.mock("../models/admin.model.js");
-vi.mock("dotenv");
+
+// Vitest module mocking: inline the mock object directly
+vi.mock("../../src/config/environment", () => ({
+  default: {
+    NODE_ENV: "testing",
+    JWT_SECRET: "test_jwt_secret",
+    DATABASE: {
+      HOST: "localhost",
+      PORT: 5432,
+      USER: "test_user",
+      PASSWORD: "test_password",
+      NAME: "test_db",
+    },
+    WALLETS: {
+      ADMIN_WALLET_ADDRESS: "addr_test1custom_address_here",
+      ADMIN_SEED: "some-admin-seed",
+      ADMIN_PKH: "some-admin-pkh",
+      NOZAMA_ADDRESS: "some-nozama",
+      PC_WALLET: "some-pc-wallet",
+      DEAD_WALLET_ADDRESS: "some-dead-wallet",
+    },
+    JWT_COOKIE_NAME: "token",
+    SUPER_ADMIN: {
+      EMAIL: "test@example.com",
+      PASSWORD: "password",
+      ADDRESS: "",
+    },
+  },
+}));
 
 describe("seedSuperAdmin", () => {
   let mockAdmin;
-  let mockAdminFindOne;
-  let mockAdminCreate;
-  let mockAdminSave;
-  let consoleSpy;
-  let originalEnv;
+  let findOneSpy;
+  let createSpy;
+  let consoleLogSpy;
+  let seedSuperAdmin;
 
-  const defaultAddress =
-    "addr_test1qregzqux7knjhg3v8npcp3t35w0dngwkz80ssgvywpk0ade9uy5qk6vl70ntchwh6qysnlww6q28vsjd6sz8kpdq2w0skcj8zp";
+  const defaultAddress = "addr_test1custom_address_here";
 
-  beforeEach(() => {
-    // Store original env
-    originalEnv = process.env;
+  beforeEach(async () => {
+    // Dynamically import after mocking so the module uses the mocked config
+    const seedModule = await import("../../src/db/seed-super-admin");
+    seedSuperAdmin = seedModule.seedSuperAdmin;
 
-    // Mock console.log
-    consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    // Mock Admin model methods
-    mockAdminFindOne = vi.fn();
-    mockAdminCreate = vi.fn();
-    mockAdminSave = vi.fn();
-
-    // Mock Admin model
-    vi.mocked(Admin).findOne = mockAdminFindOne;
-    vi.mocked(Admin).create = mockAdminCreate;
-
-    // Mock Role enum
-    vi.mocked(Role).SUPER = Role.SUPER;
-
-    // Clear modules to ensure fresh imports
-    vi.clearAllMocks();
+    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    findOneSpy = vi.spyOn(Admin, "findOne");
+    createSpy = vi.spyOn(Admin, "create");
   });
 
   afterEach(() => {
-    // Restore original env
-    process.env = originalEnv;
-    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   describe("when no super admin exists", () => {
     beforeEach(() => {
-      mockAdminFindOne.mockResolvedValue(null);
       mockAdmin = {
         id: 1,
         role: Role.SUPER,
         address: defaultAddress,
-        save: mockAdminSave,
+        save: vi.fn().mockResolvedValue(undefined),
       };
-      mockAdminCreate.mockResolvedValue(mockAdmin);
+      findOneSpy.mockResolvedValue(null);
+      createSpy.mockResolvedValue(mockAdmin);
     });
 
-    it("should create a new super admin with default address when env var is not set", async () => {
-      delete process.env.SUPER_ADMIN_ADDRESS;
+    it("creates a new super admin with default address when config var is not set", async () => {
+      // Reset mock to simulate config without SUPER_ADMIN_ADDRESS
+      vi.doMock("../../src/config/environment", () => ({
+        default: {
+          NODE_ENV: "testing",
+          JWT_SECRET: "test_jwt_secret",
+          DATABASE: {
+            HOST: "localhost",
+            PORT: 5432,
+            USER: "test_user",
+            PASSWORD: "test_password",
+            NAME: "test_db",
+          },
+          SUPER_ADMIN_ADDRESS: "", // empty simulates missing config
+          JWT_COOKIE_NAME: "token",
+        },
+      }));
+      // Re-import seedSuperAdmin module to use updated config mock
+      const { seedSuperAdmin: seed } = await import(
+        "../../src/db/seed-super-admin"
+      );
 
-      await seedSuperAdmin();
+      await seed();
 
-      expect(mockAdminFindOne).toHaveBeenCalledWith({
+      expect(findOneSpy).toHaveBeenCalledWith({
         where: { address: defaultAddress },
       });
-      expect(mockAdminCreate).toHaveBeenCalledWith({
+      expect(createSpy).toHaveBeenCalledWith({
         role: Role.SUPER,
         address: defaultAddress,
       });
-      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleLogSpy).not.toHaveBeenCalled();
     });
 
-    it("should create a new super admin with custom address from env var", async () => {
-      const customAddress = "addr_test1custom_address_here";
-      process.env.SUPER_ADMIN_ADDRESS = customAddress;
-
+    it("creates a new super admin with custom address from config", async () => {
+      // Normally mock is already with a custom address
       await seedSuperAdmin();
 
-      expect(mockAdminFindOne).toHaveBeenCalledWith({
-        where: { address: customAddress },
+      expect(findOneSpy).toHaveBeenCalledWith({
+        where: { address: "addr_test1custom_address_here" },
       });
-      expect(mockAdminCreate).toHaveBeenCalledWith({
+      expect(createSpy).toHaveBeenCalledWith({
         role: Role.SUPER,
-        address: customAddress,
+        address: "addr_test1custom_address_here",
       });
-      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleLogSpy).not.toHaveBeenCalled();
     });
 
-    it("should handle empty string env var by using default address", async () => {
-      process.env.SUPER_ADMIN_ADDRESS = "";
+    it("handles empty string config by using default address", async () => {
+      // Repeat the empty config test
+      vi.doMock("../../src/config/environment", () => ({
+        default: {
+          NODE_ENV: "testing",
+          JWT_SECRET: "test_jwt_secret",
+          DATABASE: {
+            HOST: "localhost",
+            PORT: 5432,
+            USER: "test_user",
+            PASSWORD: "test_password",
+            NAME: "test_db",
+          },
+          SUPER_ADMIN_ADDRESS: "",
+          JWT_COOKIE_NAME: "token",
+        },
+      }));
+      const { seedSuperAdmin: seed } = await import(
+        "../../src/db/seed-super-admin"
+      );
+      await seed();
 
-      await seedSuperAdmin();
-
-      expect(mockAdminFindOne).toHaveBeenCalledWith({
+      expect(findOneSpy).toHaveBeenCalledWith({
         where: { address: defaultAddress },
       });
-      expect(mockAdminCreate).toHaveBeenCalledWith({
+      expect(createSpy).toHaveBeenCalledWith({
         role: Role.SUPER,
         address: defaultAddress,
       });
@@ -109,70 +151,67 @@ describe("seedSuperAdmin", () => {
         id: 1,
         role: Role.SUPER,
         address: defaultAddress,
-        save: mockAdminSave,
+        save: vi.fn().mockResolvedValue(undefined),
       };
-      mockAdminFindOne.mockResolvedValue(mockAdmin);
+      findOneSpy.mockResolvedValue(mockAdmin);
     });
 
-    it("should skip seeding and log message when super admin already exists with SUPER role", async () => {
+    it("skips seeding and logs message when super admin exists", async () => {
       await seedSuperAdmin();
 
-      expect(mockAdminFindOne).toHaveBeenCalledWith({
+      expect(findOneSpy).toHaveBeenCalledWith({
         where: { address: defaultAddress },
       });
-      expect(mockAdminCreate).not.toHaveBeenCalled();
-      expect(mockAdminSave).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(mockAdmin.save).not.toHaveBeenCalled();
+      expect(consoleLogSpy).toHaveBeenCalledWith(
         "Super admin already exists, skipping seeding"
       );
     });
 
-    it("should use custom address from env var when checking existing admin", async () => {
-      const customAddress = "addr_test1custom_existing_address";
-      process.env.SUPER_ADMIN_ADDRESS = customAddress;
-
-      mockAdmin.address = customAddress;
-      mockAdminFindOne.mockResolvedValue(mockAdmin);
+    it("uses custom address from config when checking existing admin", async () => {
+      mockAdmin.address = "addr_test1custom_address_here";
+      findOneSpy.mockResolvedValue(mockAdmin);
 
       await seedSuperAdmin();
 
-      expect(mockAdminFindOne).toHaveBeenCalledWith({
-        where: { address: customAddress },
+      expect(findOneSpy).toHaveBeenCalledWith({
+        where: { address: "addr_test1custom_address_here" },
       });
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(consoleLogSpy).toHaveBeenCalledWith(
         "Super admin already exists, skipping seeding"
       );
     });
   });
 
   describe("error handling", () => {
-    it("should propagate database errors from findOne", async () => {
+    it("propagates database errors from findOne", async () => {
       const dbError = new Error("Database connection failed");
-      mockAdminFindOne.mockRejectedValue(dbError);
+      findOneSpy.mockRejectedValue(dbError);
 
       await expect(seedSuperAdmin()).rejects.toThrow(
         "Database connection failed"
       );
     });
 
-    it("should propagate database errors from create", async () => {
-      mockAdminFindOne.mockResolvedValue(null);
+    it("propagates database errors from create", async () => {
+      findOneSpy.mockResolvedValue(null);
       const dbError = new Error("Failed to create admin");
-      mockAdminCreate.mockRejectedValue(dbError);
+      createSpy.mockRejectedValue(dbError);
 
       await expect(seedSuperAdmin()).rejects.toThrow("Failed to create admin");
     });
 
-    it("should propagate database errors from save", async () => {
+    it("propagates database errors from save", async () => {
       mockAdmin = {
         id: 1,
         role: "ADMIN",
         address: defaultAddress,
-        save: mockAdminSave,
+        save: vi.fn(),
       };
-      mockAdminFindOne.mockResolvedValue(mockAdmin);
+      findOneSpy.mockResolvedValue(mockAdmin);
       const dbError = new Error("Failed to save admin");
-      mockAdminSave.mockRejectedValue(dbError);
+      mockAdmin.save.mockRejectedValue(dbError);
 
       await expect(seedSuperAdmin()).rejects.toThrow("Failed to save admin");
     });

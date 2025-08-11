@@ -1,6 +1,7 @@
 import Admin from "../models/admin.model.js";
 import { Request, Response } from "express";
 import { generateJWTToken, setAuthCookie } from "../utils/helper.js";
+import config from "../config/environment.js";
 
 const signIn = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -57,12 +58,12 @@ const signIn = async (req: Request, res: Response): Promise<void> => {
 
 const signOut = async (req: Request, res: Response): Promise<void> => {
   try {
-    const cookieName = process.env.JWT_COOKIE_NAME || "token";
+    const cookieName = config.JWT_COOKIE_NAME;
 
     // Clear the cookie
     res.clearCookie(cookieName, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: config.NODE_ENV === "production",
       sameSite: "lax",
     });
 

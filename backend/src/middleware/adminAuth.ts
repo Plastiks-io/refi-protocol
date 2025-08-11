@@ -3,6 +3,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Role } from "../models/admin.model.js";
+import config from "../config/environment.js";
 
 interface AdminToken extends JwtPayload {
   id: string;
@@ -26,7 +27,7 @@ export async function adminAuth(
 ) {
   try {
     // Grab the token from cookies (default cookie name: 'token', can be overridden)
-    const cookieName = process.env.JWT_COOKIE_NAME || "token";
+    const cookieName = config.JWT_COOKIE_NAME || "token";
     const token = req.cookies?.[cookieName];
 
     if (!token) {
@@ -36,7 +37,7 @@ export async function adminAuth(
       return;
     }
 
-    const secret = process.env.JWT_SECRET;
+    const secret = config.JWT_SECRET;
     if (!secret) {
       console.error("JWT_SECRET not set in environment");
       res.status(500).json({ message: "Server configuration error" });

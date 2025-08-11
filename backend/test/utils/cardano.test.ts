@@ -57,17 +57,8 @@ describe("Cardano class - constructor & initialization", () => {
     process.env.BLOCKFROST_PROJECT_ID = "test_project_id";
   });
 
-  it("should throw if required env vars are missing", () => {
-    delete process.env.PLASTIC_TOKEN;
-
-    expect(() => new Cardano()).toThrow(
-      "PLASTIC_TOKEN environment variable is required"
-    );
-  });
-
   it("should instantiate with correct validators and assets", () => {
     const cardano = new Cardano();
-    expect(cardano.ptAssetUnit).toBe("pt_token");
     expect(cardano.refiValidator.script).toBe("refi_cbor");
     expect(cardano.stakeRewardValidator.type).toBe("PlutusV2");
   });

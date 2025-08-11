@@ -10,17 +10,13 @@ import {
   UTxO,
   getAddressDetails,
 } from "lucid-cardano";
-import dotenv from "dotenv";
 import { refiValidator, stakeRewardValidator } from "../contract/contracts.js";
 import { LenderDatum, RoadmapDatum } from "../types/stake.reward.types.js";
-dotenv.config();
+import config from "../config/environment.js";
 
 const initLucid = async () => {
   const lucid = await Lucid.new(
-    new Blockfrost(
-      process.env.BLOCKFROST_URL!,
-      process.env.BLOCKFROST_PROJECT_ID!
-    ),
+    new Blockfrost(config.BLOCKFROST.URL!, config.BLOCKFROST.PROJECT_ID!),
     "Preprod"
   );
   return lucid;

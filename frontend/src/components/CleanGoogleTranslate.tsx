@@ -17,16 +17,16 @@ interface Language {
 
 const languages: Language[] = [
   { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "es", name: "Español", flag: "🇪🇸" },
-  { code: "fr", name: "Français", flag: "🇫🇷" },
-  { code: "de", name: "Deutsch", flag: "🇩🇪" },
-  { code: "hi", name: "हिंदी", flag: "🇮🇳" },
-  { code: "hy", name: "Հայերեն", flag: "🇦🇲" },
-  { code: "zh-CN", name: "中文", flag: "🇨🇳" },
-  { code: "ja", name: "日本語", flag: "🇯🇵" },
-  { code: "ar", name: "العربية", flag: "🇸🇦" },
-  { code: "pt", name: "Português", flag: "🇧🇷" },
-  { code: "ru", name: "Русский", flag: "🇷🇺" },
+  { code: "es", name: "Spanish", flag: "🇪🇸" },
+  { code: "fr", name: "French", flag: "🇫🇷" },
+  { code: "de", name: "German", flag: "🇩🇪" },
+  { code: "hi", name: "Hindi", flag: "🇮🇳" },
+  { code: "hy", name: "Armenian", flag: "🇦🇲" },
+  { code: "zh-CN", name: "Chinese", flag: "🇨🇳" },
+  { code: "ja", name: "Japanese", flag: "🇯🇵" },
+  { code: "ar", name: "Arabic", flag: "🇸🇦" },
+  { code: "pt", name: "Portuguese", flag: "🇧🇷" },
+  { code: "ru", name: "Russian", flag: "🇷🇺" },
 ];
 
 const CleanGoogleTranslate: React.FC = () => {
