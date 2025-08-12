@@ -43,7 +43,9 @@ export async function bootstrap(): Promise<void> {
   // 2. Create Express app
   const app = express();
   const server = http.createServer(app);
+
   const io = new IOServer(server, {
+    path: "/socket.io",
     cors: {
       origin: [config.FRONTEND_URL, config.FRONTEND_URL_2],
       methods: ["GET", "POST"],
