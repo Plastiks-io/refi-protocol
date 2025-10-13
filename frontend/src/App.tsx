@@ -27,6 +27,7 @@ import Lend from "@/pages/dashboard/lend";
 import PrivateLendRoute from "./components/PrivateLendRoute";
 import { CardanoProvider } from "@/contexts/cardanoContexts";
 import SocketManager from "./socket/SocketManager";
+import { fetchGovernanceStats } from "./redux/governanceSlice";
 export const WalletContext = React.createContext<BrowserWallet | null>(null);
 
 function App() {
@@ -75,6 +76,7 @@ function App() {
     dispatch(fetchRoadmaps());
     dispatch(fetchCompletedRoadmaps());
     dispatch(fetchArchivedRoadmaps());
+    dispatch(fetchGovernanceStats());
     // only fetch admins if user is already an admin
     if (isAdmin) {
       dispatch(fetchAdmins());

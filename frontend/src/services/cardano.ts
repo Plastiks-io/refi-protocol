@@ -5,6 +5,8 @@ import { Constr, fromText, toText, Validator, WalletApi } from "lucid-cardano";
 import { Lucid, Blockfrost, getAddressDetails, Data } from "lucid-cardano";
 import type { Assets, Network } from "lucid-cardano";
 import { toast } from "sonner";
+import { useTransactionToast } from "@/components/CustomToast";
+const { showTransactionToast } = useTransactionToast();
 
 export interface NetworkConfig {
   projectId: string;
@@ -1200,8 +1202,14 @@ export class Cardano {
         body
       );
 
-      toast.success(res.message, {
-        closeButton: true,
+      // toast.success(res.message, {
+      //   closeButton: true,
+      // });
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: res.message,
+        linkText: "View on CardanoScan",
+        linkUrl: `https://preprod.cardanoscan.io/transaction/${txHash}`,
       });
     } catch (err: Error | any) {
       console.log("Error sending pc:", err);

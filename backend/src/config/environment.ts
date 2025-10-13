@@ -67,6 +67,7 @@ export const config = {
   CONTRACTS: {
     STAKE_REWARD_CBOR: process.env.STAKE_REWARD_CBOR,
     REFI_CBOR: process.env.REFI_CBOR,
+    GOVERNANCE_CBOR: process.env.GOVERNANCE_CBOR,
   },
 
   JWT_COOKIE_NAME: process.env.JWT_COOKIE_NAME || "token",

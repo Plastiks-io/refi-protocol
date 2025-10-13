@@ -6,13 +6,14 @@ import { socket } from "./socket";
 import { Roadmap, upsertRoadmap } from "@/redux/roadmapSlice";
 import { fetchTransactions, TransactionType } from "@/redux/TransactionSlice";
 import { toast } from "sonner";
+import { fetchGovernanceStats } from "@/redux/governanceSlice";
 
 const SocketManager: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { refresh } = useCardanoData(); // Now this is inside CardanoProvider
 
   useEffect(() => {
-    // ✅ Socket.IO: listen for roadmap updates
+    // Socket.IO: listen for roadmap updates
     socket.on("roadmapUpdated", (fullRoadmap: Roadmap) => {
       toast.success("NFT bought successfully!", {
         description: `You have successfully purchased NFT from ${fullRoadmap.roadmapName}.`,
@@ -29,7 +30,7 @@ const SocketManager: React.FC = () => {
       dispatch(upsertRoadmap(fullRoadmap));
     });
 
-    // ✅ Socket.IO: listen for stake Contract Update
+    // Socket.IO: listen for stake Contract Update
     socket.on("stakeContractUpdated", (isUpdated: boolean) => {
       console.log("stakeContractUpdated", isUpdated);
       if (isUpdated) {
@@ -44,10 +45,19 @@ const SocketManager: React.FC = () => {
       }
     });
 
+    // Socket.IO: listen for transactionUpdated
+    socket.on("transactionUpdated", (isUpdated: boolean) => {
+      console.log("transactionUpdated", isUpdated);
+      if (isUpdated) {
+        dispatch(fetchGovernanceStats());
+      }
+    });
+
     return () => {
       socket.off("roadmapUpdated");
       socket.off("fundsUpdated");
       socket.off("stakeContractUpdated");
+      socket.off("transactionUpdated");
     };
   }, [dispatch, refresh]);
 

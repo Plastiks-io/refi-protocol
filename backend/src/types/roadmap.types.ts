@@ -47,3 +47,8 @@ export type ArchivedRoadmapRequest = {
   preId: string;
   roadmapId: string;
 };
+
+export type UpdateDataOnchain = {
+  stakedNumber: number;
+  rewardNumber: number;
+};

@@ -6,6 +6,7 @@ import archivedRoadmapReducer from "./archivedRoadmapSlice";
 import TransactionsReducer from "./TransactionSlice";
 import AuthReducer from "./authSlice";
 import AdminReducer from "./adminSlice";
+import GovernanceReducer from "./governanceSlice";
 import storageSession from "redux-persist/lib/storage/session";
 import { persistReducer, persistStore, PersistConfig } from "redux-persist";
 
@@ -35,6 +36,7 @@ export const store = configureStore({
     transactions: TransactionsReducer,
     auth: persistedAuthReducer,
     admin: AdminReducer,
+    governance: GovernanceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

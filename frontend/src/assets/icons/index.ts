@@ -12,6 +12,8 @@ import Archive from "./archive.svg";
 import User from "./user.svg";
 import User2 from "./user2.svg";
 import Trust from "./trust.svg";
+import CheckCircle from "./check-circle.svg";
+import XCircle2 from "./x-circle.svg";
 
 // …then bundle them up in one module
 export {
@@ -28,4 +30,6 @@ export {
   User,
   User2,
   Trust,
+  CheckCircle,
+  XCircle2,
 };

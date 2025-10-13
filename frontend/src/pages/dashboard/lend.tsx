@@ -7,6 +7,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useCardanoData } from "@/contexts/cardanoContexts";
 import axios from "axios";
+import { useTransactionToast } from "@/components/CustomToast";
+const { showTransactionToast } = useTransactionToast();
 
 export default function Lend() {
   // on‑chain values
@@ -17,6 +19,7 @@ export default function Lend() {
   const [lendAmount, setLendAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [plastikHoldings, setPlastikHoldings] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const wallet = useContext(WalletContext);
   const { roadmaps } = useSelector((state: RootState) => state.roadmaps);
@@ -34,21 +37,29 @@ export default function Lend() {
     if (amount <= 0) return;
 
     try {
+      setLoading(true);
       if (!wallet) throw new Error("Wallet not connected");
       const txHash = await cardanoClient.depositPlastik(wallet, BigInt(amount));
-      toast.success("Tokens lent successfully! " + txHash, {
-        closeButton: true,
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your deposit plastik token is being processed.",
+        linkText: "View on CardanoScan",
+        linkUrl: `https://preprod.cardanoscan.io/transaction/${txHash}`,
       });
       setShowLendModal(false);
       setLendAmount("");
+      setLoading(false);
       await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
         {
           txHash,
+          stakedNumber,
+          rewardNumber,
         }
       );
     } catch (error) {
       console.error("Error lending tokens:", error);
+      setLoading(false);
       toast.error(
         `Failed to lend tokens: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -70,23 +81,32 @@ export default function Lend() {
     }
 
     try {
+      setLoading(true);
       if (!wallet) throw new Error("Wallet not connected");
       const txHash = await cardanoClient.withdrawPlastik(
         wallet,
         BigInt(amount)
       );
-      toast.success("Tokens withdrawn successfully! " + txHash, {
-        closeButton: true,
+
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your withdrawal plastik token is being processed.",
+        linkText: "View on CardanoScan",
+        linkUrl: `https://preprod.cardanoscan.io/transaction/${txHash}`,
       });
       setShowWithdrawalWarning(false);
       setWithdrawAmount("");
+      setLoading(false);
       await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
         {
           txHash,
+          stakedNumber,
+          rewardNumber,
         }
       );
     } catch (error) {
+      setLoading(false);
       console.error("Error withdrawing tokens:", error);
     }
   };
@@ -101,13 +121,18 @@ export default function Lend() {
     try {
       if (!wallet) throw new Error("Wallet not connected");
       const txHash = await cardanoClient.redeemReward(wallet);
-      toast.success("Tokens withdrawn successfully! " + txHash, {
-        closeButton: true,
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your reward token is being processed.",
+        linkText: "View on CardanoScan",
+        linkUrl: `https://preprod.cardanoscan.io/transaction/${txHash}`,
       });
       await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
         {
           txHash,
+          stakedNumber,
+          rewardNumber,
         }
       );
     } catch (error) {
@@ -309,11 +334,22 @@ export default function Lend() {
               >
                 Cancel
               </button>
+
               <button
                 onClick={handleLendTokens}
-                className="flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-2xl shadow-md border border-gray-200"
+                className="flex items-center justify-center flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-2xl shadow-md border border-gray-200"
               >
-                Confirm
+                {loading ? (
+                  <>
+                    <Loader2
+                      className="animate-spin w-5 h-5 mr-2"
+                      role="processing"
+                    />
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm"
+                )}
               </button>
             </div>
           </div>
@@ -368,9 +404,19 @@ export default function Lend() {
               </button>
               <button
                 onClick={handleWithdraw}
-                className="flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-2xl shadow-md border border-gray-200"
+                className="flex items-center justify-center flex-1 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-2xl shadow-md border border-gray-200"
               >
-                Confirm
+                {loading ? (
+                  <>
+                    <Loader2
+                      className="animate-spin w-5 h-5 mr-2"
+                      role="processing"
+                    />
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm"
+                )}
               </button>
             </div>
           </div>

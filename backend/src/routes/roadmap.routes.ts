@@ -28,10 +28,14 @@ router.delete("/archived/:id", adminAuth, deleteArchivedRoadmap);
 
 // For updating stake contract
 router.post("/enqueue-stake-check", async (req, res) => {
-  const { txHash } = req.body;
+  const { txHash, stakedNumber, rewardNumber } = req.body;
+  console.log(txHash, stakedNumber, rewardNumber);
+
   if (!txHash) return res.status(400).send("txHash required");
   const job = await updateStakeContractQueue.add("updateStakeContract", {
     txHash,
+    stakedNumber,
+    rewardNumber,
   });
 
   res.status(200).json({

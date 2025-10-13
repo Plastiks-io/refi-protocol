@@ -16,6 +16,7 @@ import nftRoutes from "./routes/nft.routes.js";
 import adminsRouter from "./routes/admin.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import transactionRoutes from "./routes/transaction.routes.js";
+import governanceRoutes from "./routes/governance.routes.js";
 
 // ESM "is this the main module?" check
 import { fileURLToPath } from "url";
@@ -81,6 +82,7 @@ export async function bootstrap(): Promise<void> {
   app.use("/admin", adminsRouter);
   app.use("/auth", authRouter);
   app.use("/transaction", transactionRoutes);
+  app.use("/governance", governanceRoutes);
 
   // 4. Start server if run directly
   server.listen(config.PORT, () =>

@@ -1,6 +1,6 @@
 # Plastiks Frontend
 
-![Plastiks Logo](https://via.placeholder.com/150) <!-- Replace with your project logo -->
+![Plastiks Logo](https://via.placeholder.com/150)
 
 ## 🌟 Overview
 
@@ -10,12 +10,15 @@ Plastiks is a blockchain-based platform designed to facilitate secure and transp
 
 ## 📋 Table of Contents
 
-- [Features](#features)
-- [Technologies Used](#technologies-used)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
+- [Plastiks Frontend](#plastiks-frontend)
+  - [🌟 Overview](#-overview)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [✨ Features](#-features)
+  - [🛠️ Technologies Used](#️-technologies-used)
+  - [🚀 Getting Started](#-getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+  - [📂 Project Structure](#-project-structure)
 
 ---
 
@@ -49,20 +52,23 @@ Plastiks is a blockchain-based platform designed to facilitate secure and transp
 ### Installation
 
 1. Clone the repository:
-    ```bash
-    git clone https://github.com/your-username/plastiks-frontend.git
-    cd plastiks-frontend
-    ```
+
+   ```bash
+   git clone https://github.com/your-username/plastiks-frontend.git
+   cd plastiks-frontend
+   ```
 
 2. Install dependencies:
-    ```bash
-    npm install
-    ```
+
+   ```bash
+   npm install
+   ```
 
 3. Start the development server:
-    ```bash
-    npm start
-    ```
+
+   ```bash
+   npm start
+   ```
 
 4. Open your browser and navigate to `http://localhost:3000`.
 

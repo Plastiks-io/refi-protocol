@@ -35,6 +35,7 @@ common common-all
                     , serialise
                     , plutus-tx-plugin
                     , cardano-api
+                    
                     -- , tasty
                     -- , tasty-hunit
 
@@ -51,12 +52,12 @@ library
 
 -- Exposed your modules here
   exposed-modules:
-                  -- Escrow.Validator,
-                  -- Escrow.Compiler,
                   Refi.Validator,
                   Refi.Compiler,
                   Lend.StakeReward,
-                  Lend.Compiler
+                  Lend.Compiler,
+                  Governance.Validator,
+                  Governance.Compiler
 
 test-suite test
   type:                exitcode-stdio-1.0
@@ -72,8 +73,10 @@ test-suite test
     plutus-core,
     containers,
     smart-contract,
-    bytestring
+    bytestring,
+    deepseq
   default-language:    Haskell2010
   other-modules:
     Spec.Refi
-    Spec.StakeReward
+    Spec.StakeReward,
+    Spec.Governance

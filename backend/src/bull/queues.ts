@@ -19,6 +19,12 @@ export interface UpdateFundsJob {
 }
 export interface StakeContractJob {
   txHash: string;
+  stakedNumber: number;
+  rewardNumber: number;
+}
+
+export interface transactionUpdatedJob {
+  txHash: string;
 }
 
 export const buyNftQueue = new Queue<BuyNftJob>("buyNftQueue", {
@@ -32,5 +38,10 @@ export const updateFundsQueue = new Queue<UpdateFundsJob>("updateFundsQueue", {
 
 export const updateStakeContractQueue = new Queue<StakeContractJob>(
   "updateStakeContractQueue",
+  { connection }
+);
+
+export const transactionUpdatedQueue = new Queue<transactionUpdatedJob>(
+  "transactionUpdatedQueue",
   { connection }
 );

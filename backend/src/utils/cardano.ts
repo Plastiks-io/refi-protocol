@@ -734,6 +734,110 @@ export class Cardano {
     );
   }
 
+  public async updatedDataOnChain(
+    txHash: string,
+    stakedNumber: number,
+    rewardNumber: number
+  ): Promise<boolean> {
+    try {
+      const lucid = this.getLucid();
+
+      // If txHash is provided, first confirm the transaction is on-chain
+      if (txHash) {
+        console.log(
+          `Waiting for transaction ${txHash} to be confirmed on-chain...`
+        );
+        const confirmed = await this.updatedOnChain(txHash);
+        if (!confirmed) {
+          console.error(
+            `Transaction ${txHash} not confirmed on-chain within timeout`
+          );
+          return false;
+        }
+        console.log(`Transaction ${txHash} confirmed on-chain`);
+      }
+
+      const maxRetries = 10;
+      const retryDelay = 5000; // 5 seconds
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        console.log(
+          `Checking data update attempt ${attempt + 1}/${maxRetries}...`
+        );
+
+        const utxos: UTxO[] = await lucid.utxosAt(this.stakeRewardAddress);
+
+        if (utxos.length === 0) {
+          console.log("No UTxOs found at stake reward address");
+          if (attempt < maxRetries - 1) {
+            await new Promise((res) => setTimeout(res, retryDelay));
+            continue;
+          }
+          console.error(
+            "No UTxOs found at stake reward address after all retries"
+          );
+          return false;
+        }
+
+        const stakeRewardUtxo = utxos[0];
+        const currentStakedNumber = Number(
+          stakeRewardUtxo.assets[`${this.policyId}${this.ptAssetName}`] ?? 0n
+        );
+        const currentRewardNumber = Number(
+          stakeRewardUtxo.assets[`${this.policyId}${this.usdmAssetName}`] ?? 0n
+        );
+
+        console.log(
+          `Original staked: ${stakedNumber}, Current staked: ${currentStakedNumber}`
+        );
+        console.log(
+          `Original reward: ${rewardNumber}, Current reward: ${currentRewardNumber}`
+        );
+
+        // Check if EITHER the staked number OR reward number has changed
+        const stakedChanged = currentStakedNumber !== stakedNumber;
+        const rewardChanged = currentRewardNumber !== rewardNumber;
+
+        if (stakedChanged || rewardChanged) {
+          console.log("✅ Data successfully updated on-chain");
+          if (stakedChanged) {
+            console.log(
+              `  Staked amount changed: ${stakedNumber} → ${currentStakedNumber}`
+            );
+          }
+          if (rewardChanged) {
+            console.log(
+              `  Reward amount changed: ${rewardNumber} → ${currentRewardNumber}`
+            );
+          }
+          return true; // Data has been updated, return success
+        }
+
+        // If this is the last attempt, log error and return false
+        if (attempt === maxRetries - 1) {
+          console.error(
+            `Data not updated after ${maxRetries} attempts. ` +
+              `Staked: ${currentStakedNumber} (unchanged from ${stakedNumber}), ` +
+              `Reward: ${currentRewardNumber} (unchanged from ${rewardNumber})`
+          );
+          return false;
+        }
+
+        // Wait for the next polling interval before retrying
+        console.log(
+          `No changes detected yet, waiting ${retryDelay}ms before retry...`
+        );
+        await new Promise((res) => setTimeout(res, retryDelay));
+      }
+
+      // This should never be reached, but just in case
+      return false;
+    } catch (error) {
+      console.error("❌ Worker error:", error);
+      return false; // Return false instead of throwing error
+    }
+  }
+
   /**
    * Poll Cardano transaction via Blockfrost until confirmed, timeout after 5 minutes.
    */

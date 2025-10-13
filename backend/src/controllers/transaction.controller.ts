@@ -1,6 +1,5 @@
 // src/controllers/transaction.controller.ts
 import { Op } from "sequelize";
-import axios from "axios";
 import { Transaction, TransactionType } from "../models/transaction.model.js";
 import { Request, Response } from "express";
 import { updateFundsQueue } from "../bull/queues.js";

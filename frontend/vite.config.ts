@@ -100,6 +100,7 @@ export default defineConfig({
       "pbkdf2",
       "buffer",
       "util",
+      "@emurgo/cardano-serialization-lib-browser",
     ],
   },
   test: {
