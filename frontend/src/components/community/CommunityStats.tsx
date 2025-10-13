@@ -24,11 +24,12 @@ const CommunityStats = ({
   const getCountdownString = (end: Date) => {
     const now = new Date();
     const diff = end.getTime() - now.getTime();
-    if (diff <= 0) return "0d 0h 0m";
+    if (diff <= 0) return "0d 0h 0m 0s";
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
-    return `${days}d ${hours}h ${minutes}m`;
+    const seconds = Math.floor((diff / 1000) % 60);
+    return `${days}d ${hours}h ${minutes}m ${seconds}s`;
   };
 
   // Update countdown every minute if voting is ongoing
@@ -37,7 +38,7 @@ const CommunityStats = ({
     setCountdown(getCountdownString(votingEndDate));
     const interval = setInterval(() => {
       setCountdown(getCountdownString(votingEndDate));
-    }, 60000);
+    }, 1000);
     return () => clearInterval(interval);
   }, [voting, votingEndDate]);
 
