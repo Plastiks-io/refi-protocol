@@ -145,18 +145,9 @@ const RoadmapDetails: React.FC = () => {
         roadmap.preId,
         roadmap.roadmapId
       );
-      toast.success(
-        `Funds released successfully! Transaction Hash: ${txHash}`,
-        {
-          closeButton: true,
-        }
-      );
       const url = import.meta.env.VITE_SERVER_URL;
       const apiUrl = `${url}/roadmap/save`;
-      const { data: res } = await axios.post(apiUrl, roadmap);
-      toast.success(res.message, {
-        closeButton: true,
-      });
+      await axios.post(apiUrl, roadmap);
       // After successful release, remove from active roadmaps
       dispatch(removeRoadmap(roadmap.roadmapId));
       await axios.post(
@@ -195,18 +186,12 @@ const RoadmapDetails: React.FC = () => {
     try {
       console.log(roadmap);
       setArchiveLoading(true);
-      const txHash = await cardanoClient.archivedRoadmap(
+      await cardanoClient.archivedRoadmap(
         wallet,
         roadmap.preId,
         roadmap.roadmapId
       );
       setArchiveLoading(false);
-      toast.success(
-        `Roadmap archived successfully! Transaction Hash: ${txHash}`,
-        {
-          closeButton: true,
-        }
-      );
       const url = import.meta.env.VITE_SERVER_URL;
       const apiUrl = `${url}/roadmap/archive`;
 
@@ -261,9 +246,6 @@ const RoadmapDetails: React.FC = () => {
         BigInt(sentAmount)
       );
       setLoading(false);
-      toast.success("Stablecoins sent to escrow successfully! " + txHash, {
-        closeButton: true,
-      });
       console.log("Transaction Hash:", txHash);
       await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,

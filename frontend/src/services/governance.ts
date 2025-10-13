@@ -10,6 +10,8 @@ import {
   WalletApi,
   getAddressDetails,
 } from "lucid-cardano";
+import { useTransactionToast } from "@/components/CustomToast";
+const { showTransactionToast } = useTransactionToast();
 
 class Governance {
   public lucidInstance: Lucid | null = null;
@@ -38,6 +40,7 @@ class Governance {
       baseUrl: import.meta.env.VITE_BLOCKFROST_MAINNET_URL,
       projectId: import.meta.env.VITE_BLOCKFROST_MAINNET_PROJECT_ID,
       lucidNetwork: "Mainnet",
+      cardanoScanUrl: import.meta.env.VITE_CARDANO_SCAN_MAINNET_URL!,
       initialRetirementRate: 2n,
       minVotingPeriod: 10000n,
       quorumThreshold: 5n,
@@ -46,6 +49,7 @@ class Governance {
       baseUrl: import.meta.env.VITE_BLOCKFROST_URL,
       projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
       lucidNetwork: "Preprod",
+      cardanoScanUrl: import.meta.env.VITE_CARDANO_SCAN_URL!,
       initialRetirementRate: 2n,
       minVotingPeriod: 10000n,
       quorumThreshold: 5n,
@@ -460,6 +464,13 @@ class Governance {
         }
       );
 
+      // custom toast
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your create proposal transaction has been submitted.",
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
       return txHash;
     } catch (error) {
       console.error("Error creating proposal:", error);
@@ -590,6 +601,16 @@ class Governance {
       const signedTx = await tx.sign().complete();
       const txHash = await signedTx.submit();
 
+      // custom toast
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: `Vote ${
+          inFavor ? "for" : "against"
+        } submitted successfully! Tx: ${txHash}`,
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
+
       // Clear cache after voting
       this.clearVoteCache();
 
@@ -703,6 +724,14 @@ class Governance {
 
       const signedTx = await tx.sign().complete();
       const txHash = await signedTx.submit();
+
+      // custom toast
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: `Proposal executed and finalized! Transaction: ${txHash}`,
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
 
       // Clear cache after execution
       this.clearVoteCache();

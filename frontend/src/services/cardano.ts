@@ -12,6 +12,7 @@ export interface NetworkConfig {
   projectId: string;
   baseUrl: string;
   lucidNetwork: Network;
+  cardanoScanUrl: string;
 }
 
 interface RoadmapDatum {
@@ -63,11 +64,13 @@ export class Cardano {
       baseUrl: import.meta.env.VITE_BLOCKFROST_MAINNET_URL,
       projectId: import.meta.env.VITE_BLOCKFROST_MAINNET_PROJECT_ID,
       lucidNetwork: "Mainnet",
+      cardanoScanUrl: import.meta.env.VITE_CARDANO_SCAN_MAINNET_URL!,
     },
     0: {
       baseUrl: import.meta.env.VITE_BLOCKFROST_URL,
       projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
       lucidNetwork: "Preprod",
+      cardanoScanUrl: import.meta.env.VITE_CARDANO_SCAN_URL!,
     },
   };
 
@@ -289,6 +292,13 @@ export class Cardano {
 
       const signed = await tx.sign().complete();
       const txHash = await signed.submit();
+
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your deposit plastik token is being processed.",
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
       return txHash;
     } catch (error) {
       console.error("Error Depositing Plastik Token:", error);
@@ -441,6 +451,12 @@ export class Cardano {
       const txComplete = await tx.complete();
       const signed = await txComplete.sign().complete();
       const txHash = await signed.submit();
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your withdrawal plastik token is being processed.",
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
       return txHash;
     } catch (error: Error | any) {
       console.error("Error initializing Lucid:", error);
@@ -538,6 +554,12 @@ export class Cardano {
 
       const signed = await tx.sign().complete();
       const txHash = await signed.submit();
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your reward token is being processed.",
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
       return txHash;
     } catch (error) {
       console.error("Error redeeming reward:", error);
@@ -673,6 +695,14 @@ export class Cardano {
 
       const signed = await tx.sign().complete();
       const txHash = await signed.submit();
+
+      // show custom toast
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your fund usdm transaction has been submitted.",
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
 
       const usdmBalance = Number(matchedUtxo.assets[this.usdmAssetUnit]) || 0;
       // save the plastik token to Lend S.C as well as usdm funding on DB
@@ -997,6 +1027,14 @@ export class Cardano {
       const signedTx = await tx.sign().complete();
       const txHash = await signedTx.submit();
 
+      // Show custom toast
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your release funds transaction has been submitted.",
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
+
       // save the usdm token released on DB divide it with 10^6 because it is in micro at datum
       const usdmValueDivided = Number(usdmValue) / 1000000;
 
@@ -1065,6 +1103,14 @@ export class Cardano {
 
       const signedTx = await tx.sign().complete();
       const txHash = await signedTx.submit();
+
+      // Show custom toast
+      showTransactionToast({
+        title: "Transaction Submitted",
+        description: "Your archive roadmap transaction has been submitted.",
+        linkText: "View on CardanoScan",
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
+      });
 
       return txHash;
     } catch (error: Error | any) {
@@ -1209,7 +1255,7 @@ export class Cardano {
         title: "Transaction Submitted",
         description: res.message,
         linkText: "View on CardanoScan",
-        linkUrl: `https://preprod.cardanoscan.io/transaction/${txHash}`,
+        linkUrl: `${this.config.cardanoScanUrl}/transaction/${txHash}`,
       });
     } catch (err: Error | any) {
       console.log("Error sending pc:", err);

@@ -119,15 +119,7 @@ const Community: React.FC = () => {
 
     setIsCreatingProposal(true);
     try {
-      const txHash = await governanceClient.createProposal(
-        wallet,
-        BigInt(votingPercentage)
-      );
-
-      toast.success(`Proposal created successfully! Transaction: ${txHash}`, {
-        closeButton: true,
-        duration: 5000,
-      });
+      await governanceClient.createProposal(wallet, BigInt(votingPercentage));
       setVotingPopup(false);
       setVotingPercentage(0);
     } catch (error) {
@@ -147,20 +139,10 @@ const Community: React.FC = () => {
 
     setIsVoting(true);
     try {
-      const txHash = await governanceClient.voteOnProposal(
+      await governanceClient.voteOnProposal(
         inFavor,
         wallet,
         BigInt(activeProposal.proposalId)
-      );
-
-      toast.success(
-        `Vote ${
-          inFavor ? "for" : "against"
-        } submitted successfully! Tx: ${txHash}`,
-        {
-          closeButton: true,
-          duration: 5000,
-        }
       );
     } catch (error) {
       console.error("Error voting:", error);
@@ -179,15 +161,10 @@ const Community: React.FC = () => {
 
     setIsExecuting(true);
     try {
-      const txHash = await governanceClient.executeAndUpdateProposal(
+      await governanceClient.executeAndUpdateProposal(
         wallet,
         BigInt(activeProposal.proposalId)
       );
-
-      toast.success(`Proposal executed and finalized! Transaction: ${txHash}`, {
-        closeButton: true,
-        duration: 5000,
-      });
     } catch (error) {
       console.error("Error executing proposal:", error);
       toast.error(

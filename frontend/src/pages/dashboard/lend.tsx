@@ -7,8 +7,6 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useCardanoData } from "@/contexts/cardanoContexts";
 import axios from "axios";
-import { useTransactionToast } from "@/components/CustomToast";
-const { showTransactionToast } = useTransactionToast();
 
 export default function Lend() {
   // on‑chain values
@@ -40,12 +38,6 @@ export default function Lend() {
       setLoading(true);
       if (!wallet) throw new Error("Wallet not connected");
       const txHash = await cardanoClient.depositPlastik(wallet, BigInt(amount));
-      showTransactionToast({
-        title: "Transaction Submitted",
-        description: "Your deposit plastik token is being processed.",
-        linkText: "View on CardanoScan",
-        linkUrl: `https://preprod.cardanoscan.io/transaction/${txHash}`,
-      });
       setShowLendModal(false);
       setLendAmount("");
       setLoading(false);
@@ -88,12 +80,6 @@ export default function Lend() {
         BigInt(amount)
       );
 
-      showTransactionToast({
-        title: "Transaction Submitted",
-        description: "Your withdrawal plastik token is being processed.",
-        linkText: "View on CardanoScan",
-        linkUrl: `https://preprod.cardanoscan.io/transaction/${txHash}`,
-      });
       setShowWithdrawalWarning(false);
       setWithdrawAmount("");
       setLoading(false);
@@ -121,12 +107,7 @@ export default function Lend() {
     try {
       if (!wallet) throw new Error("Wallet not connected");
       const txHash = await cardanoClient.redeemReward(wallet);
-      showTransactionToast({
-        title: "Transaction Submitted",
-        description: "Your reward token is being processed.",
-        linkText: "View on CardanoScan",
-        linkUrl: `https://preprod.cardanoscan.io/transaction/${txHash}`,
-      });
+
       await axios.post(
         `${import.meta.env.VITE_SERVER_URL}/roadmap/enqueue-stake-check`,
         {

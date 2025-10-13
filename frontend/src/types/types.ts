@@ -19,6 +19,7 @@ export interface NetworkConfig {
   projectId: string;
   baseUrl: string;
   lucidNetwork: Network;
+  cardanoScanUrl: string;
 }
 
 // Add this interface at the top of your file or in a separate types file
