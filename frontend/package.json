@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:production": "vite --mode production",
     "dev:testing": "vite --mode testing",
+    "prebuild": "node scripts/create-stream-web.js",
     "build": "tsc -b && vite build",
     "build:production": "tsc -b && vite build --mode production",
     "build:test": "tsc -b && vite build --mode testing",
