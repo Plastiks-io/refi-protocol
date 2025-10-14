@@ -1148,7 +1148,7 @@ export class Cardano {
         fromText(roadmap.roadmapId),
         fromText(roadmap.roadmapName),
         fromText(roadmap.roadmapDescription),
-        BigInt(roadmap.progress) * 100n,
+        BigInt(roadmap.progress * 100),
         [adminPkh],
         paymentCredential.hash,
         stakeCredential.hash,
