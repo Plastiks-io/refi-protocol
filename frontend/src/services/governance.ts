@@ -414,9 +414,9 @@ class Governance {
 
       const now = this.asPOSIXTime(Date.now());
       // 30 days from now
-      // const expires = now + 30n * 24n * 60n * 60n * 1000n;
+      const expires = now + 30n * 24n * 60n * 60n * 1000n;
       // for testing make it 5 minutes from now
-      const expires = now + 5n * 60n * 1000n;
+      // const expires = now + 5n * 60n * 1000n;
 
       const newProp = this.proposalData(
         counter + 1n,
