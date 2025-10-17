@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: refi-backend
+    restart: unless-stopped
+    network_mode: "host"
+    env_file:
+      - ./backend/.env.development
+    volumes:
+      - ./backend/src/policy:/app/dist/policy:ro
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        #  Policy ID and Token Names passed as build arguments
+        - VITE_POLICY_ID=${VITE_POLICY_ID}
+        - VITE_PLASTIC_TOKEN_NAME=${VITE_PLASTIC_TOKEN_NAME}
+        - VITE_USDM_TOKEN_NAME=${VITE_USDM_TOKEN_NAME}
+        # Plastik required to vote
+        - VITE_MINIMUM_PLASTIK_TO_VOTE=${VITE_MINIMUM_PLASTIK_TO_VOTE}
+        - VITE_MINIMUM_PLASTIK=${VITE_MINIMUM_PLASTIK}
+        # Wallet info
+        - VITE_ADMIN_WALLET_ADDRESS=${VITE_ADMIN_WALLET_ADDRESS}
+        - VITE_DEAD_WALLET_ADDRESS=${VITE_DEAD_WALLET_ADDRESS}
+        - VITE_PC_WALLET=${VITE_PC_WALLET}
+        - VITE_SERVER_URL=/api
+        # Blockfrost
+        - VITE_BLOCKFROST_URL=${VITE_BLOCKFROST_URL}
+        - VITE_BLOCKFROST_PROJECT_ID=${VITE_BLOCKFROST_PROJECT_ID}
+        - VITE_BLOCKFROST_MAINNET_URL=${VITE_BLOCKFROST_MAINNET_URL}
+        - VITE_BLOCKFROST_MAINNET_PROJECT_ID=${VITE_BLOCKFROST_MAINNET_PROJECT_ID}
+        # cbor files
+        - VITE_STAKE_REWARD_CBOR=${VITE_STAKE_REWARD_CBOR}
+        - VITE_REFI_CBOR=${VITE_REFI_CBOR}
+        - VITE_GOVERNANCE_CBOR=${VITE_GOVERNANCE_CBOR}
+        # Cardano scan
+        - VITE_CARDANO_SCAN_URL=${VITE_CARDANO_SCAN_URL}
+        - VITE_CARDANO_SCAN_MAINNET_URL=${VITE_CARDANO_SCAN_MAINNET_URL}
+
+    env_file:
+      - ./frontend/.env # Points to frontend/.env
+    container_name: refi-frontend
+    restart: unless-stopped
+    network_mode: "host"

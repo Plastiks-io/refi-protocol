@@ -15,6 +15,8 @@ const SocketManager: React.FC = () => {
   useEffect(() => {
     // Socket.IO: listen for roadmap updates
     socket.on("roadmapUpdated", (fullRoadmap: Roadmap) => {
+      console.log("frontend received message for roadmap Update");
+
       toast.success("NFT bought successfully!", {
         description: `You have successfully purchased NFT from ${fullRoadmap.roadmapName}.`,
         closeButton: true,

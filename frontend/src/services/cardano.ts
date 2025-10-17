@@ -302,7 +302,7 @@ export class Cardano {
       return txHash;
     } catch (error) {
       console.error("Error Depositing Plastik Token:", error);
-      throw new Error("Failed to deposite plastik token");
+      throw error;
     }
   };
 
@@ -460,10 +460,7 @@ export class Cardano {
       return txHash;
     } catch (error: Error | any) {
       console.error("Error initializing Lucid:", error);
-      toast.error("Failed to Withdraw plastik token " + error.message, {
-        closeButton: true,
-      });
-      throw new Error("Failed to initialize Lucid for withdrawal");
+      throw error;
     }
   };
 
@@ -563,9 +560,7 @@ export class Cardano {
       return txHash;
     } catch (error) {
       console.error("Error redeeming reward:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to redeem reward"
-      );
+      throw error;
     }
   };
 

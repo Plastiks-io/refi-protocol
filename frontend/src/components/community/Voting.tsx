@@ -28,6 +28,7 @@ const Voting = ({
 }: VotingRetirementProps) => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const minimumPlastikToVote = import.meta.env.VITE_MINIMUM_PLASTIK_TO_VOTE;
+  console.log("minimumPlastikToVote", minimumPlastikToVote);
 
   // Calculate vote percentages
   const totalVotes = votesFor + votesAgainst;

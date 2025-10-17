@@ -46,7 +46,7 @@ export async function bootstrap(): Promise<void> {
   const server = http.createServer(app);
 
   const io = new IOServer(server, {
-    path: "/socket.io",
+    path: "/api/socket.io",
     cors: {
       origin: [config.FRONTEND_URL, config.FRONTEND_URL_2],
       methods: ["GET", "POST"],
@@ -68,7 +68,7 @@ export async function bootstrap(): Promise<void> {
   app.use(express.json());
 
   // 3. Mount routes
-  app.get("/", (_req: Request, res: Response) =>
+  app.get("/api", (_req: Request, res: Response) =>
     res.json({
       message: "Plastiks Backend API",
       environment: config.NODE_ENV,
@@ -77,12 +77,12 @@ export async function bootstrap(): Promise<void> {
     })
   );
 
-  app.use("/roadmap", roadmapRoutes);
-  app.use("/nft", nftRoutes);
-  app.use("/admin", adminsRouter);
-  app.use("/auth", authRouter);
-  app.use("/transaction", transactionRoutes);
-  app.use("/governance", governanceRoutes);
+  app.use("/api/roadmap", roadmapRoutes);
+  app.use("/api/nft", nftRoutes);
+  app.use("/api/admin", adminsRouter);
+  app.use("/api/auth", authRouter);
+  app.use("/api/transaction", transactionRoutes);
+  app.use("/api/governance", governanceRoutes);
 
   // 4. Start server if run directly
   server.listen(config.PORT, () =>

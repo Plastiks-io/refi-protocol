@@ -1,0 +1,37 @@
+# Dependencies (Docker will install fresh)
+node_modules
+pnpm-lock.yaml
+
+# Build output (Docker will build fresh)
+dist
+
+# Environment files (secrets should come from docker-compose, not baked in image)
+.env
+.env.*
+
+# Git files (not needed in container)
+.git
+.gitignore
+
+# Logs (not needed in image)
+*.log
+npm-debug.log*
+
+# Editor/IDE folders (your personal settings)
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Test and coverage
+coverage
+.nyc_output

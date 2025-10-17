@@ -70,6 +70,11 @@ export const config = {
     GOVERNANCE_CBOR: process.env.GOVERNANCE_CBOR,
   },
 
+  REDIS: {
+    host: process.env.REDIS_HOST || "127.0.0.1",
+    port: parseInt(process.env.REDIS_PORT || "6379"),
+  },
+
   JWT_COOKIE_NAME: process.env.JWT_COOKIE_NAME || "token",
 } as const;
 

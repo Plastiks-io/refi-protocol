@@ -10,6 +10,7 @@ import { WalletContext } from "../../App";
 import { fetchGovernanceStats } from "../../redux/governanceSlice";
 import type { RootState, AppDispatch } from "../../redux/store";
 import { governanceClient } from "@/services/governance";
+import { isTxSignError } from "@/utils/helper";
 
 const percentages = [2, 3, 4, 5];
 
@@ -123,10 +124,23 @@ const Community: React.FC = () => {
       setVotingPopup(false);
       setVotingPercentage(0);
     } catch (error) {
-      console.error("Error creating proposal:", error);
+      if (isTxSignError(error)) {
+        toast.info("Transaction cancelled", {
+          description: "You declined to sign the transaction",
+          closeButton: true,
+        });
+        return;
+      }
+      // For all other errors
       toast.error(
-        error instanceof Error ? error.message : "Failed to create proposal",
-        { duration: 5000 }
+        `${
+          error instanceof Error
+            ? error.message || "Transaction failed"
+            : "Unknown error"
+        }`,
+        {
+          closeButton: true,
+        }
       );
     } finally {
       setIsCreatingProposal(false);
@@ -146,9 +160,23 @@ const Community: React.FC = () => {
       );
     } catch (error) {
       console.error("Error voting:", error);
+      if (isTxSignError(error)) {
+        toast.info("Transaction cancelled", {
+          description: "You declined to sign the transaction",
+          closeButton: true,
+        });
+        return;
+      }
+      // For all other errors
       toast.error(
-        error instanceof Error ? error.message : "Failed to submit vote",
-        { duration: 5000 }
+        `${
+          error instanceof Error
+            ? error.message || "Transaction failed"
+            : "Unknown error"
+        }`,
+        {
+          closeButton: true,
+        }
       );
     } finally {
       setIsVoting(false);
@@ -167,9 +195,23 @@ const Community: React.FC = () => {
       );
     } catch (error) {
       console.error("Error executing proposal:", error);
+      if (isTxSignError(error)) {
+        toast.info("Transaction cancelled", {
+          description: "You declined to sign the transaction",
+          closeButton: true,
+        });
+        return;
+      }
+      // For all other errors
       toast.error(
-        error instanceof Error ? error.message : "Failed to execute proposal",
-        { duration: 5000 }
+        `${
+          error instanceof Error
+            ? error.message || "Transaction failed"
+            : "Unknown error"
+        }`,
+        {
+          closeButton: true,
+        }
       );
     } finally {
       setIsExecuting(false);
@@ -373,6 +415,7 @@ const Community: React.FC = () => {
           <TokenBalance
             plastikBalance={plastikBalance}
             votingAllowed={votingAllowed}
+            voteStarted={isVotingActive}
           />
         )}
 

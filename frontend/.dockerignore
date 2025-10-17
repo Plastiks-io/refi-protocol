@@ -1,0 +1,35 @@
+# Dependencies (Docker will install fresh)
+node_modules
+
+# Build output (Docker will build fresh)
+dist
+
+# Environment files (secrets should come from docker-compose)
+.env
+.env.*
+
+# Git files
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor/IDE folders
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Test and coverage
+coverage

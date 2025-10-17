@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useCardanoData } from "@/contexts/cardanoContexts";
 import axios from "axios";
+import { isTxSignError } from "@/utils/helper";
 
 export default function Lend() {
   // on‑chain values
@@ -18,6 +19,7 @@ export default function Lend() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [plastikHoldings, setPlastikHoldings] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [redeemRewardLoading, setRedeemRewardLoading] = useState(false);
 
   const wallet = useContext(WalletContext);
   const { roadmaps } = useSelector((state: RootState) => state.roadmaps);
@@ -50,16 +52,29 @@ export default function Lend() {
         }
       );
     } catch (error) {
-      console.error("Error lending tokens:", error);
-      setLoading(false);
+      // Handle user cancellation gracefully
+      console.log("Tx Sign Error", isTxSignError(error));
+
+      if (isTxSignError(error)) {
+        toast.info("Transaction cancelled", {
+          description: "You declined to sign the transaction",
+          closeButton: true,
+        });
+        return;
+      }
+      // For all other errors
       toast.error(
-        `Failed to lend tokens: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `${
+          error instanceof Error
+            ? error.message || "Transaction failed"
+            : "Unknown error"
         }`,
         {
           closeButton: true,
         }
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,8 +107,26 @@ export default function Lend() {
         }
       );
     } catch (error) {
+      if (isTxSignError(error)) {
+        toast.info("Transaction cancelled", {
+          description: "You declined to sign the transaction",
+          closeButton: true,
+        });
+        return;
+      }
+      // For all other errors
+      toast.error(
+        `${
+          error instanceof Error
+            ? error.message || "Transaction failed"
+            : "Unknown error"
+        }`,
+        {
+          closeButton: true,
+        }
+      );
+    } finally {
       setLoading(false);
-      console.error("Error withdrawing tokens:", error);
     }
   };
 
@@ -104,6 +137,7 @@ export default function Lend() {
       });
       return;
     }
+    setRedeemRewardLoading(true);
     try {
       if (!wallet) throw new Error("Wallet not connected");
       const txHash = await cardanoClient.redeemReward(wallet);
@@ -117,13 +151,30 @@ export default function Lend() {
         }
       );
     } catch (error) {
-      console.error(error);
+      console.error("Error redeeming reward:", error);
+      // Handle user cancellation gracefully
+      console.log("Tx Sign Error", isTxSignError(error));
+
+      if (isTxSignError(error)) {
+        toast.info("Transaction cancelled", {
+          description: "You declined to sign the transaction",
+          closeButton: true,
+        });
+        return;
+      }
+      // For all other errors
       toast.error(
-        `${error instanceof Error ? error.message : "Unknown error"}`,
+        `${
+          error instanceof Error
+            ? error.message || "Transaction failed"
+            : "Unknown error"
+        }`,
         {
           closeButton: true,
         }
       );
+    } finally {
+      setRedeemRewardLoading(false);
     }
   };
 
@@ -208,9 +259,12 @@ export default function Lend() {
         <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4 flex items-center justify-center">
           <button
             onClick={redeemReward}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-full flex items-center justify-center gap-2"
           >
             Redeem Rewards
+            {redeemRewardLoading && (
+              <Loader2 className="animate-spin w-4 h-4" />
+            )}
           </button>
         </div>
       </div>

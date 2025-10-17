@@ -107,3 +107,20 @@ export const formatDateTime = (
 
   return { datePart, timePart };
 };
+
+// Define the TxSignError type
+export interface TxSignError extends Error {
+  code: number;
+  info: string;
+  name: "TxSignError";
+}
+
+// Type guard function
+export function isTxSignError(error: unknown): error is TxSignError {
+  return (
+    error instanceof Error &&
+    error.name === "TxSignError" &&
+    "code" in error &&
+    "info" in error
+  );
+}

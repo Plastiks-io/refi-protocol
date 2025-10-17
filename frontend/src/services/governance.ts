@@ -474,9 +474,7 @@ class Governance {
       return txHash;
     } catch (error) {
       console.error("Error creating proposal:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to create proposal"
-      );
+      throw error;
     }
   }
 
@@ -624,9 +622,7 @@ class Governance {
       return txHash;
     } catch (error) {
       console.error("Error voting:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to vote"
-      );
+      throw error;
     }
   }
 
@@ -746,9 +742,7 @@ class Governance {
       return txHash;
     } catch (error) {
       console.error("Error executing proposal:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to execute proposal"
-      );
+      throw error;
     }
   }
 }
