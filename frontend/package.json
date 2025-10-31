@@ -9,6 +9,7 @@
     "dev:testing": "vite --mode testing",
     "prebuild": "node scripts/create-stream-web.js",
     "build": "tsc -b && vite build",
+    "prebuild:production": "node scripts/create-stream-web.js",
     "build:production": "tsc -b && vite build --mode production",
     "build:test": "tsc -b && vite build --mode testing",
     "lint": "eslint .",
