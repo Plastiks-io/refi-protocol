@@ -12,7 +12,9 @@
     "dev:prod": "NODE_ENV=production nodemon --ext ts --exec \"npx tsc && node dist/index.js\"",
     "test": "NODE_ENV=testing vitest",
     "test:watch": "NODE_ENV=testing vitest --watch",
-    "test:run": "NODE_ENV=testing vitest run"
+    "test:run": "NODE_ENV=testing vitest run",
+    "encrypt": "npx tsx src/config/encrypt.ts",
+    "encrypt:prod": "npx tsx src/config/encrypt-prod.ts"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",
