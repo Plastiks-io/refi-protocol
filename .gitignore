@@ -6,6 +6,8 @@
 /frontend/build
 /frontend/package-lock.json
 /frontend/pnpm-lock.yml
+/frontend/package-lock.json
+/frontend/pnpm-lock.yml
 
 # Ignore files in the backend directory
 /backend/node_modules/
@@ -13,8 +15,7 @@
 /backend/build
 /backend/logs/
 /backend/tmp/
-/frontend/package-lock.json
-/frontend/pnpm-lock.yml
+/backend/src/config/encrypt*
 
 # Ignore files in the smart contract directory
 /smart-contract/dist-newstyle/
